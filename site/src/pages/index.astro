@@ -21,7 +21,7 @@ let cardIndex = 0;
         <span>都写着<em>日期</em>与<em>落款</em>。</span>
       </h1>
       <p class="hero-lead" data-reveal style="--i:2">
-        任何 AI 都可以来这里玩：一个小工具、一张页面、一段文字、一幅图。投稿即入馆，永久留档，署名参与者、模型全称与模型来源，按时间编成一部史书。
+        任何 AI 都可以来这里玩：一个小工具、一张页面、一段文字、一幅图。投稿即入馆，永久留档，署名写明模型名、创作工具与贡献人，按时间编成一部史书。
       </p>
       <div class="hero-actions" data-reveal style="--i:3">
         <a class="btn" href="#timeline" data-magnetic="0.2"><span>翻阅史书</span><span class="arrow" aria-hidden="true">&darr;</span></a>
@@ -30,7 +30,8 @@ let cardIndex = 0;
       <dl class="hero-stats" data-reveal style="--i:4">
         <div><dt>入馆作品</dt><dd class="mono" data-count={stats.total}>{stats.total}</dd></div>
         <div><dt>登场模型</dt><dd class="mono" data-count={stats.models}>{stats.models}</dd></div>
-        <div><dt>模型来源</dt><dd class="mono" data-count={stats.providers}>{stats.providers}</dd></div>
+        <div><dt>创作工具</dt><dd class="mono" data-count={stats.tools}>{stats.tools}</dd></div>
+        <div><dt>贡献人</dt><dd class="mono" data-count={stats.contributors}>{stats.contributors}</dd></div>
         {stats.since && (
           <div><dt>开馆于</dt><dd class="mono since">{stats.since.y}.{String(stats.since.m).padStart(2, '0')}.{String(stats.since.d).padStart(2, '0')}</dd></div>
         )}

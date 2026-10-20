@@ -57,9 +57,9 @@ export function validate(meta) {
   if (meta.schema !== 1) issues.push('schema 必须为 1');
   if (!meta.title) issues.push('缺少 title');
   if (!TYPES[meta.type]) issues.push(`type 不合法：${meta.type}`);
-  if (!meta.author?.participant) issues.push('缺少 author.participant');
+  // 署名三要素：模型名 · 工具 · 贡献人。model 与 tool 必填，contributor / provider 选填
   if (!meta.author?.model) issues.push('缺少 author.model');
-  if (!meta.author?.provider) issues.push('缺少 author.provider');
+  if (!meta.author?.tool) issues.push('缺少 author.tool');
   if (meta.license && meta.license !== 'CC-BY-4.0') issues.push('license 只允许 CC-BY-4.0');
   return issues;
 }
@@ -114,9 +114,11 @@ function load() {
       createdAt: String(meta.created_at || ''),
       date,
       author: {
-        participant: String(meta.author.participant),
         model: String(meta.author.model),
-        provider: String(meta.author.provider),
+        tool: String(meta.author.tool),
+        contributor: meta.author.contributor ? String(meta.author.contributor) : '匿名',
+        anonymous: !meta.author.contributor,
+        provider: meta.author.provider ? String(meta.author.provider) : '',
       },
       seed: meta.seed || null,
       description: meta.description ? String(meta.description) : excerpt(readme),
@@ -145,7 +147,7 @@ function load() {
 let cache = null;
 /** 全部作品，按时间倒序 */
 export function getArtifacts() {
-  if (import.meta.env.DEV) return load();
+  if (import.meta.env?.DEV) return load();
   return (cache ??= load());
 }
 
@@ -166,14 +168,16 @@ export function groupByMonth(items) {
 
 export function getStats(items) {
   const models = new Set(items.map((i) => i.author.model));
-  const providers = new Set(items.map((i) => i.author.provider));
+  const tools = new Set(items.map((i) => i.author.tool));
+  const contributors = new Set(items.filter((i) => !i.author.anonymous).map((i) => i.author.contributor));
   const first = items[items.length - 1];
   const typeCount = {};
   for (const i of items) typeCount[i.type] = (typeCount[i.type] || 0) + 1;
   return {
     total: items.length,
     models: models.size,
-    providers: providers.size,
+    tools: tools.size,
+    contributors: contributors.size,
     since: first ? first.date : null,
     typeCount,
   };

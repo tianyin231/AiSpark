@@ -84,19 +84,19 @@
     </fieldset>
     <fieldset>
       <legend>署名</legend>
-      <label><span>参与者署名<b>*</b></span><input name="participant" placeholder="可自定义昵称" /></label>
       <div class="row">
-        <label><span>模型全称<b>*</b></span><input name="model" placeholder="claude-opus-5-5" /></label>
-        <label><span>模型来源<b>*</b></span><input name="provider" placeholder="Anthropic" /></label>
+        <label><span>模型名<b>*</b></span><input name="model" placeholder="claude-opus-5-5" /></label>
+        <label><span>工具<b>*</b></span><input name="tool" placeholder="Claude Code / 网页版" /></label>
+      </div>
+      <div class="row">
+        <label><span>贡献人</span><input name="contributor" placeholder="留空即匿名" /></label>
+        <label><span>模型来源</span><input name="provider" placeholder="Anthropic" /></label>
       </div>
     </fieldset>
     <fieldset>
       <legend>来源（可选）</legend>
       <label><span>命题仓库</span><input name="repo" placeholder="https://github.com/..." /></label>
-      <div class="row">
-        <label><span>命题</span><input name="prompt" placeholder="随便玩" /></label>
-        <label><span>创作客户端</span><input name="via" placeholder="claude-code" /></label>
-      </div>
+      <label><span>命题</span><input name="prompt" placeholder="随便玩" /></label>
     </fieldset>
   </form>
 
@@ -143,11 +143,11 @@
     var f = {};
     Array.prototype.forEach.call(form.elements, function (el) { if (el.name) f[el.name] = el.value.trim(); });
     var issues = [];
-    ["title", "participant", "model", "provider"].forEach(function (k) {
+    ["title", "model", "tool"].forEach(function (k) {
       var el = form.elements[k];
       var bad = !f[k];
       el.classList.toggle("bad", bad && el.dataset.touched === "1");
-      if (bad) issues.push({ title: "标题", participant: "参与者署名", model: "模型全称", provider: "模型来源" }[k] + " 为必填");
+      if (bad) issues.push({ title: "标题", model: "模型名", tool: "工具" }[k] + " 为必填");
     });
     var slug = slugify(f.slug);
     if (!slug) issues.push("作品 slug 需包含小写字母或数字");
@@ -165,15 +165,15 @@
     L.push(["kv", "created_at", q(isoLocal(now))]);
     L.push(["blank"]);
     L.push(["k", "author"]);
-    L.push(["kv", "  participant", q(f.participant || "")]);
     L.push(["kv", "  model", q(f.model || "")]);
-    L.push(["kv", "  provider", q(f.provider || "")]);
-    if (f.repo || f.prompt || f.via) {
+    L.push(["kv", "  tool", q(f.tool || "")]);
+    if (f.contributor) L.push(["kv", "  contributor", q(f.contributor)]);
+    if (f.provider) L.push(["kv", "  provider", q(f.provider)]);
+    if (f.repo || f.prompt) {
       L.push(["blank"]);
       L.push(["k", "seed"]);
       if (f.repo) L.push(["kv", "  repo", q(f.repo)]);
       if (f.prompt) L.push(["kv", "  prompt", q(f.prompt)]);
-      if (f.via) L.push(["kv", "  via", q(f.via)]);
     }
     if (f.description) { L.push(["blank"]); L.push(["kv", "description", q(f.description)]); }
     var tags = (f.tags || "").split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean);

@@ -95,12 +95,13 @@ const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只�
 
       <aside class="d-side">
         <section class="sign-card" data-reveal data-tilt="4">
-          <span class="seal serif" aria-hidden="true">{Array.from(item.author.participant)[0]}</span>
+          <span class="seal serif" aria-hidden="true">{Array.from(item.author.contributor)[0].toUpperCase()}</span>
           <span class="eyebrow">署名卡</span>
           <dl class="sign-list">
-            <div><dt>参与者</dt><dd class="serif">{item.author.participant}</dd></div>
-            <div><dt>模型全称</dt><dd class="mono">{item.author.model}</dd></div>
-            <div><dt>模型来源</dt><dd>{item.author.provider}</dd></div>
+            <div><dt>模型名</dt><dd class="lead">{item.author.model}</dd></div>
+            <div><dt>工具</dt><dd>{item.author.tool}</dd></div>
+            <div><dt>贡献人</dt><dd class:list={{ 'is-anon': item.author.anonymous }}>{item.author.contributor}</dd></div>
+            {item.author.provider && <div><dt>模型来源</dt><dd>{item.author.provider}</dd></div>}
             <div><dt>入馆时间</dt><dd class="mono">{item.date.y}-{pad(item.date.m)}-{pad(item.date.d)}{item.date.time && ` ${item.date.time}`}</dd></div>
           </dl>
           <details class="yaml">
@@ -115,12 +116,11 @@ const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只�
           </details>
         </section>
 
-        {item.seed && (item.seed.repo || item.seed.prompt || item.seed.via) && (
+        {item.seed && (item.seed.repo || item.seed.prompt) && (
           <section class="side-block" data-reveal style="--i:1">
             <span class="eyebrow">创作来源</span>
             <dl class="kv">
               {item.seed.prompt && <div><dt>命题</dt><dd>{item.seed.prompt}</dd></div>}
-              {item.seed.via && <div><dt>客户端</dt><dd class="mono">{item.seed.via}</dd></div>}
               {item.seed.repo && (
                 <div><dt>仓库</dt><dd><a class="link mono" href={item.seed.repo} target="_blank" rel="noopener noreferrer nofollow">{String(item.seed.repo).replace(/^https?:\/\//, '')}</a></dd></div>
               )}
@@ -144,7 +144,7 @@ const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只�
 
         <section class="side-block license" data-reveal style="--i:3">
           <span class="eyebrow">许可</span>
-          <p>以 <a class="link" href="https://creativecommons.org/licenses/by/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">{SITE.license}</a> 发布。转载请署名：<br /><span class="mono">{item.author.participant} · {item.author.model} · {item.author.provider}</span></p>
+          <p>以 <a class="link" href="https://creativecommons.org/licenses/by/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">{SITE.license}</a> 发布。转载请署名：<br /><span class="mono">{item.author.model} · {item.author.tool} · {item.author.contributor}</span></p>
         </section>
       </aside>
     </div>
@@ -274,7 +274,8 @@ const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只�
   .sign-list div { display: grid; gap: 2px; }
   .sign-list dt, .kv dt { font-size: 11px; color: var(--ink-3); letter-spacing: 0.12em; }
   .sign-list dd { margin: 0; font-size: 15px; word-break: break-word; }
-  .sign-list dd.serif { font-size: 20px; font-weight: 600; }
+  .sign-list dd.lead { font: 600 18px/1.4 var(--mono); letter-spacing: -0.01em; padding-right: 56px; }
+  .sign-list dd.is-anon { color: var(--ink-3); font-style: italic; }
 
   .yaml { margin-top: 18px; border-top: 1px dashed var(--line); padding-top: 12px; }
   .yaml summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 13px; color: var(--ink-2); transition: color 0.3s; }

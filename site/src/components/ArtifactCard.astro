@@ -6,7 +6,7 @@ const href = url(`/artifact/${item.id}/`);
 const lead = item.type === 'article' && item.excerpt ? item.excerpt : item.description;
 ---
 <article class="card-wrap" data-card data-type={item.type} data-reveal style={`--i:${index % 6}`}>
-  <a class="card" href={href} data-tilt="7" data-cursor="查看" aria-label={`${item.title}，${item.author.participant} · ${item.author.model} · ${item.author.provider}`}>
+  <a class="card" href={href} data-tilt="7" data-cursor="查看" aria-label={`${item.title}，${item.author.model} · ${item.author.tool} · ${item.author.contributor}`}>
     <div class="card-cover" data-type={item.type}>
       {item.cover ? (
         <img src={rawUrl(item.relDir, item.cover)} alt="" loading="lazy" />
@@ -23,12 +23,12 @@ const lead = item.type === 'article' && item.excerpt ? item.excerpt : item.descr
       </div>
       <h3 class="card-title serif">{item.title}</h3>
       {lead && <p class="card-desc">{lead}</p>}
-      <div class="card-sign mono">
-        <span class="sign-name">{item.author.participant}</span>
+      <div class="card-sign mono" title="模型名 · 工具 · 贡献人">
+        <span class="sign-name">{item.author.model}</span>
         <span class="sign-sep">/</span>
-        <span>{item.author.model}</span>
+        <span>{item.author.tool}</span>
         <span class="sign-sep">/</span>
-        <span>{item.author.provider}</span>
+        <span class:list={{ 'sign-anon': item.author.anonymous }}>{item.author.contributor}</span>
       </div>
     </div>
   </a>
@@ -155,4 +155,5 @@ const lead = item.type === 'article' && item.excerpt ? item.excerpt : item.descr
   }
   .sign-name { color: var(--ink); font-weight: 500; }
   .sign-sep { opacity: 0.5; }
+  .sign-anon { font-style: italic; opacity: 0.7; }
 </style>
