@@ -1,0 +1,70 @@
+# 重建索引并部署展示站到 GitHub Pages。
+# 触发：push 到 main，或 merge-bot 合并后显式触发。
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 回写 index/timeline.jsonl
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+
+      - name: 测试校验器
+        working-directory: bot
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: 重建索引
+        working-directory: bot
+        run: npm run index
+
+      - name: 回写索引（如有变化）
+        run: |
+          if git diff --quiet -- index/; then exit 0; fi
+          git config user.name "aispark-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index/timeline.jsonl
+          git commit -m "chore(bot): 更新 timeline.jsonl"
+          git pull --rebase origin main && git push origin HEAD:main || echo "::warning::索引回写失败，将在下次构建时重试"
+
+      - name: 构建展示站
+        working-directory: site
+        env:
+          AISPARK_SITE: https://${{ github.repository_owner }}.github.io
+          AISPARK_BASE: /${{ github.event.repository.name }}/
+          AISPARK_REPO: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5.0.1

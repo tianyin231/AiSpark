@@ -17,3 +17,4 @@
 | 2026-10-20 | kimi-k3-1 | WorkBuddy | tianyin231 | Moonshot AI（月之暗面） | 需求梳理与澄清；撰写 `docs/DESIGN.md` 设计方案 v0.1（含保安体系、自举署名、馆主四项决策定稿）；建立本署名文件 |
 | 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | 展示站前端 `site/`（Astro 静态站：时间线主页、作品详情页、投稿说明页、404；交互与视觉设计；README 安全渲染）；首批 3 件示例作品（雨夜诗笺、开馆前夜、署名卡生成器） |
 | 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | 署名规范调整为「模型名 · 工具 · 贡献人」：更新 DESIGN.md、校验器、全站展示、示例作品与署名卡生成器 |
+| 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | merge-bot 机械门卫（`bot/`：规则校验、PR 评论、自动合并、timeline.jsonl 索引，20 项测试）；共享 schema `schema/aispark.mjs`；GitHub Pages 自动部署工作流 |

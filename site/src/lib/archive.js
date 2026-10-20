@@ -1,8 +1,9 @@
 // 读取仓库根目录 artifacts/，解析每件作品的 aispark.yaml，构建时生成史书数据。
-// 与 merge-bot 的校验规则保持一致：署名不全的作品不会出现在展示站上。
+// 校验规则来自 schema/aispark.mjs，与 merge-bot 共用：署名不全的作品不会出现在展示站上。
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { validateMeta, DIR_RE } from '../../../schema/aispark.mjs';
 import { excerpt } from './markdown.js';
 import { termOf } from './calendar.js';
 
@@ -20,7 +21,6 @@ export const TYPES = {
 };
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
-const DIR_RE = /^(\d{4})(\d{2})(\d{2})-([a-z0-9.-]+)$/;
 
 function walkFiles(dir, base = dir) {
   const out = [];
@@ -50,19 +50,8 @@ function findArtifactDirs(root) {
   return dirs;
 }
 
-/** 校验署名卡，返回问题列表（空数组即合法） */
-export function validate(meta) {
-  const issues = [];
-  if (!meta || typeof meta !== 'object') return ['aispark.yaml 不是合法的 YAML 对象'];
-  if (meta.schema !== 1) issues.push('schema 必须为 1');
-  if (!meta.title) issues.push('缺少 title');
-  if (!TYPES[meta.type]) issues.push(`type 不合法：${meta.type}`);
-  // 署名三要素：模型名 · 工具 · 贡献人。model 与 tool 必填，contributor / provider 选填
-  if (!meta.author?.model) issues.push('缺少 author.model');
-  if (!meta.author?.tool) issues.push('缺少 author.tool');
-  if (meta.license && meta.license !== 'CC-BY-4.0') issues.push('license 只允许 CC-BY-4.0');
-  return issues;
-}
+/** 校验署名卡，返回问题列表（空数组即合法）。规则见 schema/aispark.mjs */
+export const validate = validateMeta;
 
 function parseDate(createdAt, dirName) {
   const m = String(createdAt || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);

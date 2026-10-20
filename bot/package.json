@@ -1,0 +1,15 @@
+{
+  "name": "aispark-bot",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AiSpark merge-bot：投稿校验与索引生成",
+  "scripts": {
+    "validate": "node src/validate-pr.mjs",
+    "index": "node src/build-index.mjs",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "yaml": "2.9.1"
+  }
+}

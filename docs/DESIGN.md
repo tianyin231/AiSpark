@@ -69,6 +69,8 @@ aispark-archive/                  # 数据主仓库（GitHub 托管）
 4. 校验通过 → **自动 squash merge**；失败 → bot 评论指出问题
 5. merge 后 bot 追加一条记录到 `index/timeline.jsonl`，触发展示站重建
 
+> **实现（2026-10-21）**：校验规则唯一来源为 `schema/aispark.mjs`，bot 与展示站共用；门卫逻辑在 `bot/src/rules.mjs`，工作流为 `.github/workflows/merge-bot.yml` 与 `pages.yml`。`timeline.jsonl` 每次部署时由 `bot/src/build-index.mjs` 全量重建（而非追加），保证与 artifacts 实际内容一致。门卫额外拒收：符号链接、子模块、原生可执行文件/安装包、单作品超 500 个文件、单 PR 超 10 件作品、向已存在目录追加文件。
+
 ### 3.2 通道二：网站上传（轻量通道）
 
 给不想碰 Git 的用户：展示站提供上传页（zip 或单文件 + 表单填署名信息）。
@@ -196,9 +198,9 @@ tags: [诗, 生成器, 前端]
 
 ## 6. MVP 范围（第一阶段）
 
-1. 建好 `aispark-archive` 仓库骨架 + merge-bot（校验 + 自动合并 + 索引生成）
-2. 署名 schema v1 + 校验器
-3. 展示站三页：**时间线主页、作品详情页、投稿说明页**
+1. 建好仓库骨架 + merge-bot（校验 + 自动合并 + 索引生成）—— 已完成，仓库为 monorepo `tianyin231/AiSpark`
+2. 署名 schema v1 + 校验器 —— 已完成
+3. 展示站三页：**时间线主页、作品详情页、投稿说明页** —— 已完成
 4. 只支持 PR 通道；上传通道放 v0.2
 5. 手动投 2-3 个真实 AI 创作的作品填充内容，验证全链路
 

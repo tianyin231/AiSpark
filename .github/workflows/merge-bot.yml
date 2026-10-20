@@ -1,0 +1,77 @@
+# AiSpark merge-bot（机械门卫）
+# 规则校验通过即自动 squash merge；失败时评论指出问题。
+#
+# 安全说明：pull_request_target 拥有写权限，因此本工作流
+#   - 只检出主仓库 main 分支的代码来运行校验器，从不检出、安装或执行 PR 中的任何代码；
+#   - PR 内容只通过 git show / ls-tree 以数据形式读取；
+#   - PR 标题、分支名等可控字段一律不拼进 shell 命令。
+name: merge-bot
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+concurrency:
+  group: merge-bot-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  gatekeeper:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PR: ${{ github.event.pull_request.number }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: 检出主仓库（不含 PR 代码）
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 22
+
+      - name: 安装校验器依赖（来自 main）
+        working-directory: bot
+        run: npm ci --no-audit --no-fund
+
+      - name: 以数据形式获取 PR 提交
+        run: git fetch --no-tags origin "+refs/pull/${PR}/head:refs/remotes/pr/head"
+
+      - name: 规则校验
+        id: check
+        working-directory: bot
+        run: |
+          set +e
+          node src/validate-pr.mjs --base origin/main --head "$HEAD_SHA" --report "$RUNNER_TEMP/report.md"
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -ge 3 ]; then exit 1; fi
+
+      - name: 评论校验结果
+        if: steps.check.outputs.code != ''
+        run: gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/report.md"
+
+      - name: 自动合并
+        if: steps.check.outputs.code == '0'
+        run: |
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --squash --match-head-commit "$HEAD_SHA"
+          # GITHUB_TOKEN 产生的 push 不会触发其他工作流，这里显式触发重建展示站
+          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      - name: 校验未通过
+        if: steps.check.outputs.code == '1'
+        run: |
+          echo "::error::投稿未通过规则校验，详见 PR 评论"
+          exit 1
