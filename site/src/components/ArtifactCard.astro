@@ -1,159 +1,180 @@
 ---
 import { url, rawUrl } from '../lib/url.js';
 
-const { item, index = 0 } = Astro.props;
+const { item } = Astro.props;
 const href = url(`/artifact/${item.id}/`);
 const lead = item.type === 'article' && item.excerpt ? item.excerpt : item.description;
+const searchText = [
+  item.title, item.description, item.author.model, item.author.tool,
+  item.author.contributor, ...(item.tags || []),
+].join(' ').toLowerCase();
+const pad = (n) => String(n).padStart(2, '0');
+// 前端类作品且无封面图时，用实时缩放预览当封面
+const livePreview = item.hasIndex && !item.cover;
+const previewImg = item.cover || (item.type === 'image' ? item.images[0] : null);
 ---
-<article class="card-wrap" data-card data-type={item.type} data-reveal style={`--i:${index % 6}`}>
-  <a class="card" href={href} data-tilt="7" data-cursor="查看" aria-label={`${item.title}，${item.author.model} · ${item.author.tool} · ${item.author.contributor}`}>
-    <div class="card-cover" data-type={item.type}>
-      {item.cover ? (
-        <img src={rawUrl(item.relDir, item.cover)} alt="" loading="lazy" />
+<article
+  class="card"
+  data-card
+  data-type={item.type}
+  data-model={item.author.model}
+  data-ts={item.date.ts}
+  data-search={searchText}
+>
+  <a class="card-link" href={href} aria-label={`${item.title}，${item.author.model} · ${item.author.tool} · ${item.author.contributor}`}>
+    <div class="card-preview" data-type={item.type}>
+      {livePreview ? (
+        <div class="pv-live" aria-hidden="true">
+          <iframe
+            src={rawUrl(item.relDir, 'index.html')}
+            title=""
+            tabindex="-1"
+            sandbox="allow-scripts"
+            referrerpolicy="no-referrer"
+            loading="lazy"
+          ></iframe>
+        </div>
+      ) : previewImg ? (
+        <img src={rawUrl(item.relDir, previewImg)} alt="" loading="lazy" />
+      ) : item.type === 'article' ? (
+        <div class="pv-text" aria-hidden="true">
+          <span class="pv-text-body">{item.excerpt || item.description}</span>
+        </div>
       ) : (
-        <span class="card-glyph" aria-hidden="true">{item.glyph}</span>
+        <div class="pv-glyph" aria-hidden="true">{item.glyph}</div>
       )}
       <span class="card-no mono">No.{item.no}</span>
-      <span class="card-spot" aria-hidden="true"></span>
     </div>
+
     <div class="card-body">
-      <div class="card-meta">
-        <span class="type-tag" data-type={item.type}>{item.typeLabel}</span>
-        <time class="mono" datetime={item.createdAt}>{String(item.date.m).padStart(2, '0')}.{String(item.date.d).padStart(2, '0')} · {item.date.term}</time>
+      <div class="card-top">
+        <span class="card-top-left">
+          <span class="type-tag" data-type={item.type}>{item.typeLabel}</span>
+          {item.tags.length > 0 && <span class="chip">{item.tags[0]}</span>}
+        </span>
+        <time class="mono" datetime={item.createdAt}>{item.date.y}.{pad(item.date.m)}.{pad(item.date.d)}</time>
       </div>
-      <h3 class="card-title serif">{item.title}</h3>
+      <h3 class="card-title">{item.title}</h3>
       {lead && <p class="card-desc">{lead}</p>}
-      <div class="card-sign mono" title="模型名 · 工具 · 贡献人">
-        <span class="sign-name">{item.author.model}</span>
-        <span class="sign-sep">/</span>
-        <span>{item.author.tool}</span>
-        <span class="sign-sep">/</span>
-        <span class:list={{ 'sign-anon': item.author.anonymous }}>{item.author.contributor}</span>
+      <div class="card-foot">
+        <span class="card-sign mono" title="模型名 · 工具 · 贡献人">
+          <b>{item.author.model}</b><i>·</i>{item.author.tool}<i>·</i><span class:list={{ 'is-anon': item.author.anonymous }}>{item.author.contributor}</span>
+        </span>
       </div>
     </div>
   </a>
 </article>
 
 <style>
-  .card-wrap { perspective: 1100px; transition: opacity 0.5s var(--ease), transform 0.9s var(--ease), filter 0.5s; }
-  .card-wrap.is-filtered { opacity: 0.12; filter: grayscale(1); pointer-events: none; }
+  .card { min-width: 0; }
+  .card.is-hidden { display: none; }
 
-  .card {
-    --rx: 0deg;
-    --ry: 0deg;
-    --mx: 50%;
-    --my: 50%;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    border-radius: var(--radius);
+  .card-link {
+    display: grid;
+    grid-template-columns: 176px minmax(0, 1fr);
+    height: 150px;
     background: var(--card);
     border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
     box-shadow: var(--shadow);
-    overflow: hidden;
-    transform: rotateX(var(--rx)) rotateY(var(--ry)) translateY(0);
-    transform-style: preserve-3d;
-    transition: transform 0.7s var(--ease), box-shadow 0.5s var(--ease), border-color 0.4s;
-    will-change: transform;
+    transition: border-color 0.25s, box-shadow 0.3s, transform 0.3s var(--ease);
   }
-  .card:hover { box-shadow: var(--shadow-lift); border-color: var(--line-2); transform: rotateX(var(--rx)) rotateY(var(--ry)) translateY(-6px); }
-  .card.is-tilting { transition: transform 0.12s linear, box-shadow 0.5s var(--ease), border-color 0.4s; }
-  .card::after {
-    /* 跟随指针的柔光 */
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(420px circle at var(--mx) var(--my), color-mix(in srgb, var(--ink) 6%, transparent), transparent 45%);
-    opacity: 0;
-    transition: opacity 0.4s;
+  .card-link:hover {
+    border-color: var(--line-2);
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-1px);
   }
-  .card:hover::after { opacity: 1; }
 
-  .card-cover {
+  /* ---------- 预览 ---------- */
+  .card-preview {
     position: relative;
-    aspect-ratio: 16 / 10;
-    display: grid;
-    place-items: center;
     overflow: hidden;
-    background-color: var(--paper-2);
-    border-bottom: 1px solid var(--line);
+    background: var(--paper-2);
+    border-right: 1px solid var(--line);
   }
-  /* 按类型给封面不同的纸纹 */
-  .card-cover[data-type="frontend"] { background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 22px 22px; }
-  .card-cover[data-type="tool"] { background-image: radial-gradient(var(--line-2) 1.2px, transparent 1.4px); background-size: 16px 16px; }
-  .card-cover[data-type="article"] { background-image: linear-gradient(transparent 27px, var(--line) 28px); background-size: 100% 28px; }
-  .card-cover[data-type="image"] { background-image: repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 14px); }
-  .card-cover[data-type="mixed"], .card-cover[data-type="other"] { background-image: repeating-linear-gradient(-45deg, var(--line) 0 1px, transparent 1px 12px), repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 12px); }
-
-  .card-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.9s var(--ease); }
-  .card:hover .card-cover img { transform: scale(1.05); }
-
-  .card-glyph {
-    font: 400 clamp(64px, 9vw, 104px)/1 var(--serif);
-    color: var(--ink);
-    transform: translate(calc((var(--mx) - 50%) * -0.08), calc((var(--my) - 50%) * -0.08));
-    transition: transform 0.6s var(--ease), color 0.4s;
-    text-shadow: 0 1px 0 var(--paper);
+  .card-preview img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+  .pv-live { position: absolute; inset: 0; overflow: hidden; background: #fff; }
+  .pv-live iframe {
+    width: 704px; height: 600px;
+    border: 0;
+    transform: scale(0.25);
+    transform-origin: 0 0;
+    pointer-events: none;
   }
-  .card:hover .card-glyph { color: var(--tc); }
-  .card-spot {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(260px circle at var(--mx) var(--my), color-mix(in srgb, var(--tc) 16%, transparent), transparent 60%);
-    opacity: 0;
-    transition: opacity 0.4s;
+  .pv-text {
+    position: absolute; inset: 0;
+    padding: 14px 16px;
+    border-left: 3px solid var(--tc, var(--line-2));
+    overflow: hidden;
   }
-  .card:hover .card-spot { opacity: 1; }
+  .pv-text-body {
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 12.5px;
+    line-height: 1.75;
+    color: var(--ink-2);
+  }
+  .pv-glyph {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-size: 52px; font-weight: 600;
+    color: color-mix(in srgb, var(--tc, var(--ink-3)) 55%, var(--ink-3));
+  }
   .card-no {
     position: absolute;
-    top: 14px;
-    left: 16px;
-    font-size: 11px;
-    letter-spacing: 0.14em;
-    color: var(--ink-3);
-    background: color-mix(in srgb, var(--card) 80%, transparent);
-    padding: 3px 7px;
-    border-radius: 4px;
+    left: 10px; bottom: 10px;
+    font-size: 10.5px; letter-spacing: 0.08em;
+    color: var(--ink-2);
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    padding: 2px 7px;
+    border-radius: 5px;
+    backdrop-filter: blur(4px);
   }
 
-  .card-body { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px 20px; flex: 1; }
-  .card-meta { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .card-meta time { font-size: 11.5px; color: var(--ink-3); letter-spacing: 0.06em; }
-  .card-title {
-    margin: 4px 0 0;
-    font-size: 21px;
-    font-weight: 600;
-    line-height: 1.35;
-    letter-spacing: 0.02em;
-    background: linear-gradient(var(--accent), var(--accent)) 0 100% / 0 1px no-repeat;
-    transition: background-size 0.6s var(--ease);
-    align-self: flex-start;
+  /* ---------- 文案 ---------- */
+  .card-body {
+    display: flex; flex-direction: column;
+    gap: 5px;
+    padding: 13px 16px 12px;
+    min-width: 0;
   }
-  .card:hover .card-title { background-size: 100% 1px; }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .card-top-left { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+  .card-top time { font-size: 11.5px; color: var(--ink-3); }
+  .card-title {
+    margin: 1px 0 0;
+    font-size: 16.5px; font-weight: 650; line-height: 1.35; letter-spacing: 0.01em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-link:hover .card-title { color: var(--accent); }
   .card-desc {
     margin: 0;
-    color: var(--ink-2);
-    font-size: 14px;
-    line-height: 1.7;
+    font-size: 13px; line-height: 1.65; color: var(--ink-2);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .card-sign {
+  .card-foot {
     margin-top: auto;
-    padding-top: 14px;
-    border-top: 1px dashed var(--line);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    font-size: 11.5px;
-    color: var(--ink-3);
-    letter-spacing: 0.02em;
+    padding-top: 8px;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
   }
-  .sign-name { color: var(--ink); font-weight: 500; }
-  .sign-sep { opacity: 0.5; }
-  .sign-anon { font-style: italic; opacity: 0.7; }
+  .card-sign {
+    font-size: 11.5px; color: var(--ink-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .card-sign b { color: var(--ink); font-weight: 550; }
+  .card-sign i { font-style: normal; opacity: 0.5; margin: 0 5px; }
+  .card-sign .is-anon { font-style: italic; opacity: 0.75; }
+
+  @media (max-width: 560px) {
+    .card-link { grid-template-columns: 128px minmax(0, 1fr); height: auto; min-height: 150px; }
+    .pv-live iframe { width: 512px; height: 600px; }
+    .card-sign { white-space: normal; line-height: 1.55; }
+  }
 </style>

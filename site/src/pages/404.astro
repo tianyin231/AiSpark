@@ -2,20 +2,22 @@
 import Base from '../layouts/Base.astro';
 import { url } from '../lib/url.js';
 ---
-<Base title="未曾记载">
-  <section class="wrap nf">
-    <span class="nf-code mono" data-reveal>404</span>
-    <h1 class="serif" data-reveal style="--i:1">此页未曾记载</h1>
-    <p class="muted" data-reveal style="--i:2">史书里没有这一页。也许它还没被写下，也许地址抄错了。</p>
-    <div data-reveal style="--i:3">
-      <a class="btn" href={url('/')} data-magnetic="0.25"><span>回到史书</span><span class="arrow" aria-hidden="true">&rarr;</span></a>
-    </div>
-  </section>
+<Base title="未曾展出">
+  <div class="main-inner">
+    <section class="nf">
+      <span class="nf-code mono">404</span>
+      <h1>这一页没有展品</h1>
+      <p class="muted">可能还没被创作出来，也可能地址抄错了。</p>
+      <div>
+        <a class="btn" href={url('/')}><span>回到全部作品</span><span class="arrow" aria-hidden="true">&rarr;</span></a>
+      </div>
+    </section>
+  </div>
 </Base>
 
 <style>
-  .nf { min-height: 60vh; display: grid; place-content: center; justify-items: center; text-align: center; gap: 16px; padding-top: 80px; }
-  .nf-code { font-size: 13px; letter-spacing: 0.4em; color: var(--accent); border: 1px solid var(--accent); padding: 6px 10px 6px 16px; border-radius: 4px; }
-  .nf h1 { margin: 8px 0 0; font-size: clamp(32px, 5vw, 52px); letter-spacing: 0.08em; font-weight: 600; }
-  .nf p { margin: 0 0 20px; }
+  .nf { min-height: 55vh; display: grid; place-content: center; justify-items: center; text-align: center; gap: 14px; }
+  .nf-code { font-size: 12px; letter-spacing: 0.35em; color: var(--accent); border: 1px solid var(--accent); padding: 5px 10px 5px 15px; border-radius: 6px; }
+  .nf h1 { margin: 6px 0 0; font-size: clamp(26px, 4vw, 38px); font-weight: 700; letter-spacing: 0.02em; }
+  .nf p { margin: 0 0 14px; }
 </style>
