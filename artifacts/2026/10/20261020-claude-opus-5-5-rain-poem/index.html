@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>雨夜诗笺</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0f1216; }
+  body {
+    font-family: "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif;
+    color: #e9e4d8;
+    cursor: crosshair;
+    user-select: none;
+  }
+  canvas { position: fixed; inset: 0; display: block; }
+  .poem {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    writing-mode: vertical-rl;
+    display: flex;
+    gap: 1.6em;
+    font-size: clamp(18px, 3.2vmin, 30px);
+    letter-spacing: 0.32em;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .line {
+    opacity: 0;
+    filter: blur(6px);
+    transform: translateY(-12px);
+    transition: opacity 1.4s ease, filter 1.4s ease, transform 1.4s ease;
+    text-shadow: 0 0 18px rgba(233, 228, 216, 0.25);
+  }
+  .line.on { opacity: 1; filter: blur(0); transform: none; }
+  .poem.fading .line { opacity: 0; filter: blur(4px); transition-duration: 0.6s; }
+  .hint {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    font: 12px/1 ui-monospace, "SFMono-Regular", Consolas, monospace;
+    letter-spacing: 0.2em;
+    color: rgba(233, 228, 216, 0.38);
+    pointer-events: none;
+  }
+  .seal {
+    position: fixed;
+    right: 28px;
+    bottom: 24px;
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid #b8432f;
+    color: #b8432f;
+    display: grid;
+    place-items: center;
+    font-size: 15px;
+    border-radius: 3px;
+    opacity: 0.85;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<div class="poem" id="poem" aria-live="polite"></div>
+<div class="hint">移动是伞 · 点击落笔</div>
+<div class="seal" aria-hidden="true">雨</div>
+<script>
+(function () {
+  "use strict";
+  var canvas = document.getElementById("rain");
+  var ctx = canvas.getContext("2d");
+  var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+  var mouse = { x: -9999, y: -9999, r: 90 };
+  var drops = [], splashes = [];
+  var DROP_COUNT = 220;
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    canvas.style.width = W + "px"; canvas.style.height = H + "px";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function makeDrop(initial) {
+    return {
+      x: Math.random() * (W + 200) - 100,
+      y: initial ? Math.random() * H : -20 - Math.random() * H * 0.5,
+      len: 10 + Math.random() * 16,
+      speed: 7 + Math.random() * 8,
+      alpha: 0.12 + Math.random() * 0.35
+    };
+  }
+
+  function splash(x, y, dir) {
+    for (var i = 0; i < 3; i++) {
+      splashes.push({
+        x: x, y: y,
+        vx: (dir || (Math.random() - 0.5)) * (1 + Math.random() * 2.5),
+        vy: -1.5 - Math.random() * 2.5,
+        life: 1
+      });
+    }
+  }
+
+  resize();
+  for (var i = 0; i < DROP_COUNT; i++) drops.push(makeDrop(true));
+
+  var WIND = 1.6;
+  function frame() {
+    ctx.fillStyle = "rgba(15, 18, 22, 0.38)";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.lineCap = "round";
+    for (var i = 0; i < drops.length; i++) {
+      var d = drops[i];
+      d.y += d.speed;
+      d.x += WIND;
+      var dx = d.x - mouse.x, dy = d.y - mouse.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < mouse.r && d.y < mouse.y + 10) {
+        // 落进伞沿：溅开，然后重新从天上落
+        splash(d.x, d.y, dx > 0 ? 1 : -1);
+        drops[i] = makeDrop(false);
+        continue;
+      }
+      if (d.y > H) {
+        if (Math.random() < 0.35) splash(d.x, H - 2);
+        drops[i] = makeDrop(false);
+        continue;
+      }
+      ctx.strokeStyle = "rgba(200, 212, 225," + d.alpha + ")";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x - WIND * 2.2, d.y - d.len);
+      ctx.stroke();
+    }
+
+    for (var j = splashes.length - 1; j >= 0; j--) {
+      var s = splashes[j];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.18; s.life -= 0.035;
+      if (s.life <= 0) { splashes.splice(j, 1); continue; }
+      ctx.fillStyle = "rgba(220, 228, 236," + (s.life * 0.6) + ")";
+      ctx.fillRect(s.x, s.y, 1.6, 1.6);
+    }
+
+    // 伞的轮廓：极淡的一道弧
+    if (mouse.x > -999) {
+      ctx.strokeStyle = "rgba(233, 228, 216, 0.08)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(mouse.x, mouse.y, mouse.r, Math.PI * 1.08, Math.PI * 1.92);
+      ctx.stroke();
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  window.addEventListener("resize", resize);
+  window.addEventListener("pointermove", function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+  window.addEventListener("pointerleave", function () { mouse.x = -9999; mouse.y = -9999; });
+  document.addEventListener("mouseleave", function () { mouse.x = -9999; mouse.y = -9999; });
+
+  // ---- 诗 ----
+  var A = ["夜雨", "孤灯", "旧巷", "寒窗", "檐角", "青石", "长街", "残烛", "远山", "小楼", "疏桐", "空阶"];
+  var B = ["无声", "未眠", "初湿", "微凉", "渐深", "独坐", "低语", "轻敲", "半掩", "如织", "未歇", "将尽"];
+  var C = ["落人间", "到天明", "入梦来", "问归期", "一伞轻", "湿旧衣", "写新诗", "数更声", "照无眠", "听檐声", "不知晴", "满江城"];
+
+  function pick(arr, used) {
+    var v;
+    do { v = arr[Math.floor(Math.random() * arr.length)]; } while (used.indexOf(v) >= 0);
+    used.push(v);
+    return v;
+  }
+
+  var poemEl = document.getElementById("poem");
+  var timers = [];
+  var busy = false;
+
+  function compose() {
+    if (busy) return;
+    busy = true;
+    timers.forEach(clearTimeout); timers = [];
+    poemEl.classList.add("fading");
+    timers.push(setTimeout(function () {
+      poemEl.classList.remove("fading");
+      poemEl.innerHTML = "";
+      var used = [];
+      for (var i = 0; i < 4; i++) {
+        var line = document.createElement("div");
+        line.className = "line";
+        line.textContent = pick(A, used) + pick(B, used) + pick(C, used);
+        poemEl.appendChild(line);
+        (function (el, k) {
+          timers.push(setTimeout(function () { el.classList.add("on"); }, 120 + k * 520));
+        })(line, i);
+      }
+      timers.push(setTimeout(function () { busy = false; }, 900));
+    }, poemEl.children.length ? 620 : 0));
+  }
+
+  window.addEventListener("pointerdown", function (e) {
+    for (var k = 0; k < 8; k++) splash(e.clientX, e.clientY, (Math.random() - 0.5) * 2);
+    compose();
+  });
+  window.addEventListener("keydown", function (e) {
+    if (e.code === "Space") { e.preventDefault(); compose(); }
+  });
+  setTimeout(compose, 500);
+})();
+</script>
+</body>
+</html>

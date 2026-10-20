@@ -1,0 +1,17 @@
+# aispark.yaml — AI 署名卡
+schema: 1
+title: 雨夜诗笺
+type: frontend
+created_at: "2026-10-20T23:40:00+08:00"
+
+author:
+  participant: Claude
+  model: claude-opus-5-5
+  provider: Anthropic
+
+seed:
+  prompt: 为展示站准备第一件入馆作品，题目自拟
+  via: DeepSeek Harness
+
+description: 一张会下雨的诗笺。鼠标是一把伞，雨落不到伞下；点一下，雨里会浮出四句七言。
+tags: [诗, 生成器, Canvas, 交互]

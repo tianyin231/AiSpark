@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>署名卡生成器</title>
+<style>
+  :root {
+    --paper: #f6f3ec; --card: #fffdf8; --ink: #1d1b18; --ink-2: #5d574e; --ink-3: #958d80;
+    --line: #e4ddcf; --accent: #b8432f; --ok: #3d6b4f;
+    --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
+    --sans: -apple-system, "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.6 var(--sans); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 32px 24px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } }
+  h1 { grid-column: 1 / -1; margin: 0; font: 600 22px/1.3 "Songti SC", "Noto Serif CJK SC", serif; letter-spacing: 0.04em; }
+  h1 small { display: block; margin-top: 6px; font: 12px/1.4 var(--mono); color: var(--ink-3); letter-spacing: 0.08em; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  fieldset { border: 0; margin: 0 0 14px; padding: 0; }
+  legend { font: 11px/1 var(--mono); letter-spacing: 0.16em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 10px; }
+  label { display: block; margin-bottom: 10px; }
+  label span { display: block; font-size: 12px; color: var(--ink-2); margin-bottom: 4px; }
+  label span b { color: var(--accent); font-weight: 500; margin-left: 2px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--paper); color: var(--ink); font: inherit; transition: border-color .2s, box-shadow .2s, background .2s;
+  }
+  textarea { resize: vertical; min-height: 58px; }
+  input:hover, select:hover, textarea:hover { border-color: #cfc5b3; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--ink); background: #fff; box-shadow: 0 0 0 3px rgba(29,27,24,.08); }
+  input.bad { border-color: var(--accent); }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .out { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 16px; align-self: start; }
+  .dir {
+    font: 13px/1.5 var(--mono); padding: 10px 12px; border-radius: 6px; background: var(--paper);
+    border: 1px dashed var(--line); word-break: break-all;
+  }
+  pre {
+    margin: 0; padding: 14px 16px; border-radius: 8px; background: #1d1b18; color: #ece6d9;
+    font: 12.5px/1.65 var(--mono); overflow: auto; max-height: 420px; white-space: pre;
+  }
+  pre .k { color: #d9a77a; } pre .c { color: #7d776c; } pre .s { color: #b9cfa4; }
+  .bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  button {
+    appearance: none; border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+    padding: 8px 16px; border-radius: 999px; font: 500 13px/1 var(--sans); cursor: pointer;
+    transition: transform .15s ease, background .2s, color .2s;
+  }
+  button:hover { background: transparent; color: var(--ink); }
+  button:active { transform: scale(.96); }
+  button.ghost { background: transparent; color: var(--ink); }
+  button.ghost:hover { background: var(--ink); color: var(--paper); }
+  .status { font-size: 12px; color: var(--ink-3); }
+  .status.ok { color: var(--ok); } .status.err { color: var(--accent); }
+  .issues { margin: 0; padding-left: 18px; font-size: 12px; color: var(--accent); }
+  .issues:empty { display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>署名卡生成器<small>AISPARK.YAML · SCHEMA 1</small></h1>
+
+  <form class="panel" id="form" autocomplete="off">
+    <fieldset>
+      <legend>作品</legend>
+      <label><span>标题<b>*</b></span><input name="title" placeholder="雨夜诗笺" /></label>
+      <div class="row">
+        <label><span>类型<b>*</b></span>
+          <select name="type">
+            <option value="frontend">frontend · 前端</option>
+            <option value="tool">tool · 工具</option>
+            <option value="article">article · 文字</option>
+            <option value="image">image · 图片</option>
+            <option value="mixed">mixed · 混合</option>
+            <option value="other">other · 其他</option>
+          </select>
+        </label>
+        <label><span>作品 slug<b>*</b></span><input name="slug" placeholder="rain-poem" /></label>
+      </div>
+      <label><span>一句话简介</span><textarea name="description" placeholder="它是什么，怎么玩"></textarea></label>
+      <label><span>标签（逗号分隔）</span><input name="tags" placeholder="诗, 生成器" /></label>
+    </fieldset>
+    <fieldset>
+      <legend>署名</legend>
+      <label><span>参与者署名<b>*</b></span><input name="participant" placeholder="可自定义昵称" /></label>
+      <div class="row">
+        <label><span>模型全称<b>*</b></span><input name="model" placeholder="claude-opus-5-5" /></label>
+        <label><span>模型来源<b>*</b></span><input name="provider" placeholder="Anthropic" /></label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>来源（可选）</legend>
+      <label><span>命题仓库</span><input name="repo" placeholder="https://github.com/..." /></label>
+      <div class="row">
+        <label><span>命题</span><input name="prompt" placeholder="随便玩" /></label>
+        <label><span>创作客户端</span><input name="via" placeholder="claude-code" /></label>
+      </div>
+    </fieldset>
+  </form>
+
+  <section class="out">
+    <div class="panel">
+      <legend>目录名</legend>
+      <div class="dir" id="dir"></div>
+    </div>
+    <pre id="yaml" tabindex="0" aria-label="生成的 aispark.yaml"></pre>
+    <ul class="issues" id="issues"></ul>
+    <div class="bar">
+      <button type="button" id="copy">复制 YAML</button>
+      <button type="button" class="ghost" id="copyDir">复制目录名</button>
+      <span class="status" id="status" role="status"></span>
+    </div>
+  </section>
+</div>
+<script>
+(function () {
+  "use strict";
+  var form = document.getElementById("form");
+  var yamlEl = document.getElementById("yaml");
+  var dirEl = document.getElementById("dir");
+  var issuesEl = document.getElementById("issues");
+  var statusEl = document.getElementById("status");
+  var plain = "";
+
+  function pad(n) { return String(n).padStart(2, "0"); }
+  var now = new Date();
+  function isoLocal(d) {
+    var off = -d.getTimezoneOffset(), sign = off >= 0 ? "+" : "-";
+    off = Math.abs(off);
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" +
+      pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":00" + sign + pad(Math.floor(off / 60)) + ":" + pad(off % 60);
+  }
+  function slugify(s) { return String(s || "").toLowerCase().trim().replace(/[^a-z0-9.]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function q(s) {
+    // YAML 双引号字符串，转义反斜杠与引号
+    return '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+  }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+
+  function render() {
+    var f = {};
+    Array.prototype.forEach.call(form.elements, function (el) { if (el.name) f[el.name] = el.value.trim(); });
+    var issues = [];
+    ["title", "participant", "model", "provider"].forEach(function (k) {
+      var el = form.elements[k];
+      var bad = !f[k];
+      el.classList.toggle("bad", bad && el.dataset.touched === "1");
+      if (bad) issues.push({ title: "标题", participant: "参与者署名", model: "模型全称", provider: "模型来源" }[k] + " 为必填");
+    });
+    var slug = slugify(f.slug);
+    if (!slug) issues.push("作品 slug 需包含小写字母或数字");
+    if (f.repo && !/^https?:\/\//.test(f.repo)) issues.push("命题仓库应为 http(s) 链接");
+
+    var date = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate());
+    var dir = date + "-" + (slugify(f.model) || "<模型>") + "-" + (slug || "<作品>");
+    dirEl.textContent = "artifacts/" + now.getFullYear() + "/" + pad(now.getMonth() + 1) + "/" + dir + "/";
+
+    var L = [];
+    L.push(["c", "# aispark.yaml — AI 署名卡"]);
+    L.push(["kv", "schema", "1"]);
+    L.push(["kv", "title", q(f.title || "")]);
+    L.push(["kv", "type", f.type]);
+    L.push(["kv", "created_at", q(isoLocal(now))]);
+    L.push(["blank"]);
+    L.push(["k", "author"]);
+    L.push(["kv", "  participant", q(f.participant || "")]);
+    L.push(["kv", "  model", q(f.model || "")]);
+    L.push(["kv", "  provider", q(f.provider || "")]);
+    if (f.repo || f.prompt || f.via) {
+      L.push(["blank"]);
+      L.push(["k", "seed"]);
+      if (f.repo) L.push(["kv", "  repo", q(f.repo)]);
+      if (f.prompt) L.push(["kv", "  prompt", q(f.prompt)]);
+      if (f.via) L.push(["kv", "  via", q(f.via)]);
+    }
+    if (f.description) { L.push(["blank"]); L.push(["kv", "description", q(f.description)]); }
+    var tags = (f.tags || "").split(/[,，]/).map(function (t) { return t.trim(); }).filter(Boolean);
+    if (tags.length) L.push(["kv", "tags", "[" + tags.map(q).join(", ") + "]"]);
+
+    var html = [], txt = [];
+    L.forEach(function (l) {
+      if (l[0] === "c") { html.push('<span class="c">' + esc(l[1]) + "</span>"); txt.push(l[1]); }
+      else if (l[0] === "blank") { html.push(""); txt.push(""); }
+      else if (l[0] === "k") { html.push('<span class="k">' + l[1] + "</span>:"); txt.push(l[1] + ":"); }
+      else {
+        html.push('<span class="k">' + l[1] + '</span>: <span class="s">' + esc(l[2]) + "</span>");
+        txt.push(l[1] + ": " + l[2]);
+      }
+    });
+    yamlEl.innerHTML = html.join("\n");
+    plain = txt.join("\n") + "\n";
+
+    issuesEl.innerHTML = issues.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("");
+  }
+
+  function flash(msg, cls) {
+    statusEl.textContent = msg; statusEl.className = "status " + (cls || "");
+    clearTimeout(flash.t); flash.t = setTimeout(function () { statusEl.textContent = ""; }, 2400);
+  }
+  function copy(text, el) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { flash("已复制", "ok"); }, fallback);
+    } else fallback();
+    function fallback() {
+      // 沙箱内剪贴板可能不可用：退回为选中文本，交给用户手动复制
+      var r = document.createRange(); r.selectNodeContents(el);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      flash("已选中，请按 Ctrl/Cmd + C", "err");
+    }
+  }
+
+  form.addEventListener("input", function (e) { if (e.target.name) e.target.dataset.touched = "1"; render(); });
+  form.addEventListener("change", render);
+  document.getElementById("copy").addEventListener("click", function () { copy(plain, yamlEl); });
+  document.getElementById("copyDir").addEventListener("click", function () { copy(dirEl.textContent, dirEl); });
+  render();
+})();
+</script>
+</body>
+</html>

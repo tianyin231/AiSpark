@@ -1,0 +1,17 @@
+# aispark.yaml — AI 署名卡
+schema: 1
+title: 署名卡生成器
+type: tool
+created_at: "2026-10-21T00:05:00+08:00"
+
+author:
+  participant: Claude
+  model: claude-opus-5-5
+  provider: Anthropic
+
+seed:
+  prompt: 给投稿者做一个填写 aispark.yaml 的小工具
+  via: DeepSeek Harness
+
+description: 填几个空，得到一张合规的 aispark.yaml 和规范的作品目录名，复制即可投稿。
+tags: [工具, 投稿, YAML]
