@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本鱼的午休 · AiSpark</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ height:100%; }
+  body{
+    font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
+    background:linear-gradient(180deg,#2f7fc4 0%, #175f9e 34%, #0d3f70 68%, #072a4e 100%);
+    overflow:hidden; color:#eaf5ff; user-select:none; cursor:pointer;
+  }
+  /* 光束 */
+  .ray{ position:absolute; top:-12%; width:130px; height:75%; pointer-events:none;
+    background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 78%);
+    transform:skewX(-13deg); filter:blur(2px); animation:sway 9s ease-in-out infinite alternate; }
+  .ray.r1{ left:12%; } .ray.r2{ left:38%; width:80px; animation-delay:-3s; opacity:.7; }
+  .ray.r3{ left:66%; width:170px; animation-delay:-6s; opacity:.55; }
+  @keyframes sway{ from{ margin-left:-16px; } to{ margin-left:22px; } }
+  /* 海底沙地与海草 */
+  .floor{ position:absolute; left:0; right:0; bottom:0; height:56px; pointer-events:none;
+    background:radial-gradient(120% 130% at 50% 0%, #155a8a 0%, #0a3a5f 62%, #072a4e 100%); border-radius:50% 50% 0 0 / 100% 100% 0 0; }
+  .weed{ position:absolute; bottom:6px; font-size:30px; opacity:.5; pointer-events:none; animation:weed 5s ease-in-out infinite alternate; transform-origin:bottom center; }
+  @keyframes weed{ from{ transform:rotate(-5deg); } to{ transform:rotate(6deg); } }
+
+  /* 抬头信息 */
+  .hud{ position:absolute; top:16px; left:16px; z-index:6; pointer-events:none;
+    background:rgba(6,32,58,.38); border:1px solid rgba(255,255,255,.28); border-radius:16px;
+    padding:11px 16px 10px; backdrop-filter:blur(6px); }
+  .hud h1{ font-size:19px; letter-spacing:.06em; }
+  .hud p{ font-size:12px; opacity:.85; margin-top:2px; }
+  .counter{ position:absolute; top:16px; right:16px; z-index:6; pointer-events:none;
+    background:rgba(6,32,58,.38); border:1px solid rgba(255,255,255,.28); border-radius:999px;
+    padding:8px 15px; font-size:13.5px; backdrop-filter:blur(6px); font-variant-numeric:tabular-nums; }
+  .counter b{ color:#ffd166; }
+  .sign{ position:absolute; right:14px; bottom:10px; z-index:6; pointer-events:none;
+    font-size:11px; letter-spacing:.05em; opacity:.75; font-family:ui-monospace,Consolas,monospace; }
+  .hint{ position:absolute; left:50%; bottom:12%; transform:translateX(-50%); z-index:6; pointer-events:none;
+    font-size:14px; letter-spacing:.14em; opacity:.85; animation:hintFloat 2.6s ease-in-out infinite; white-space:nowrap; }
+  @keyframes hintFloat{ 0%,100%{ transform:translate(-50%,0);} 50%{ transform:translate(-50%,-7px);} }
+
+  /* 鲸 */
+  #whale{ position:absolute; z-index:5; width:340px; margin-left:-170px; margin-top:-105px; left:50%; top:52%; will-change:transform; }
+  #whaleFlip{ will-change:transform; }
+  #whaleBob{ animation:bob 3.4s ease-in-out infinite; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0) rotate(-1.1deg);} 50%{ transform:translateY(-13px) rotate(1.1deg);} }
+  #tail{ transform-origin:52px 108px; animation:wag 1.7s ease-in-out infinite; }
+  @keyframes wag{ 0%,100%{ transform:rotate(-7deg);} 50%{ transform:rotate(8deg);} }
+  #fin{ transform-origin:196px 138px; animation:paddle 2.3s ease-in-out infinite; }
+  @keyframes paddle{ 0%,100%{ transform:rotate(0deg);} 50%{ transform:rotate(-13deg);} }
+  #eyeHappy{ opacity:0; }
+  .happy #eyeOpen{ opacity:0; } .happy #eyeHappy{ opacity:1; }
+  .happy #whaleBob{ animation:bob .55s ease-in-out 2; }
+
+  /* 饭、气泡字、爱心、音符 */
+  .rice{ position:absolute; z-index:4; font-size:36px; margin-left:-18px; margin-top:-18px; pointer-events:none;
+    filter:drop-shadow(0 4px 6px rgba(0,0,0,.35)); will-change:transform; }
+  .pop{ position:absolute; z-index:7; pointer-events:none; font-weight:700; font-size:19px; color:#fff;
+    text-shadow:0 2px 8px rgba(3,26,48,.6); animation:popUp 1.15s ease-out forwards; white-space:nowrap; }
+  @keyframes popUp{ 0%{ transform:translate(-50%,0) scale(.7); opacity:0; } 18%{ opacity:1; transform:translate(-50%,-12px) scale(1.08); }
+    100%{ transform:translate(-50%,-58px) scale(1); opacity:0; } }
+  .bit{ position:absolute; z-index:3; border-radius:50%; pointer-events:none; will-change:transform; }
+  @media (prefers-reduced-motion: reduce){
+    .ray,.weed,#whaleBob,#tail,#fin,.hint{ animation:none !important; }
+  }
+  @media (max-width:640px){ #whale{ width:250px; margin-left:-125px; margin-top:-78px; } .hud h1{ font-size:16px; } }
+</style>
+</head>
+<body>
+  <div class="ray r1"></div><div class="ray r2"></div><div class="ray r3"></div>
+  <div class="floor"></div>
+  <div class="weed" style="left:6%">🌿</div>
+  <div class="weed" style="left:16%; animation-delay:-2s; font-size:22px">🌿</div>
+  <div class="weed" style="right:9%">🌿</div>
+  <div class="weed" style="right:20%; animation-delay:-3.4s; font-size:24px">🪸</div>
+
+  <div class="hud">
+    <h1>🐳 本鱼的午休</h1>
+    <p>一只鲸鱼娘的午休时间。她最爱白饭，也爱 token。</p>
+  </div>
+  <div class="counter">🍚 <b id="bowls">0</b> 碗 · 已吃 token <b id="tokens">0</b></div>
+  <div class="hint" id="hint">👆 点一点海面，喂本鱼吃饭</div>
+  <div class="sign">Muse Spark · Muse · tianyin231</div>
+
+  <div id="whale">
+    <div id="whaleFlip">
+      <div id="whaleBob">
+        <svg viewBox="0 0 340 210" width="100%" aria-label="一只戴着女仆发箍的胖鲸鱼">
+          <defs>
+            <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#63b3f0"/><stop offset=".55" stop-color="#3a8dde"/><stop offset="1" stop-color="#2b6cb0"/>
+            </linearGradient>
+          </defs>
+          <!-- 尾巴 -->
+          <g id="tail">
+            <path d="M58 96 C30 78 14 58 12 34 C30 40 44 52 52 68 C54 52 62 38 76 28 C78 54 68 82 58 96 Z" fill="#2b6cb0"/>
+          </g>
+          <!-- 身体 -->
+          <path d="M52 108 C52 62 104 34 176 34 C254 34 306 66 310 104 C313 140 282 168 214 176 C130 185 52 156 52 108 Z" fill="url(#body)"/>
+          <!-- 白肚皮 -->
+          <path d="M70 128 C120 162 236 162 292 118 C280 152 240 172 186 174 C128 176 84 156 70 128 Z" fill="#eef7ff" opacity=".95"/>
+          <!-- 胸鳍 -->
+          <path id="fin" d="M196 132 C186 156 172 168 152 172 C162 150 176 138 196 132 Z" fill="#2b6cb0"/>
+          <!-- 女仆发箍 -->
+          <path d="M196 40 C214 26 244 22 268 30 L264 44 C242 36 218 40 202 52 Z" fill="#ffffff"/>
+          <circle cx="206" cy="42" r="6.5" fill="#fff"/><circle cx="222" cy="34" r="7" fill="#fff"/>
+          <circle cx="240" cy="30" r="7" fill="#fff"/><circle cx="256" cy="33" r="6.5" fill="#fff"/>
+          <!-- 呆毛 -->
+          <path d="M236 24 C240 8 254 2 264 8" fill="none" stroke="#2b6cb0" stroke-width="5" stroke-linecap="round"/>
+          <!-- 眼睛 -->
+          <g id="eyeOpen">
+            <circle cx="272" cy="92" r="7.5" fill="#10304f"/>
+            <circle cx="274.5" cy="89" r="2.6" fill="#fff"/>
+          </g>
+          <path id="eyeHappy" d="M263 94 Q272 84 281 94" fill="none" stroke="#10304f" stroke-width="4.5" stroke-linecap="round"/>
+          <!-- 腮红与嘴 -->
+          <ellipse cx="252" cy="110" rx="11" ry="6" fill="#ff9fb2" opacity=".75"/>
+          <path d="M292 106 Q298 110 292 115" fill="none" stroke="#10304f" stroke-width="3.5" stroke-linecap="round"/>
+          <!-- 气孔 -->
+          <ellipse cx="238" cy="46" rx="5" ry="2.6" fill="#2b6cb0" opacity=".65"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const sea = document.body;
+  const whale = document.getElementById('whale');
+  const flip = document.getElementById('whaleFlip');
+  const bowlsEl = document.getElementById('bowls');
+  const tokensEl = document.getElementById('tokens');
+  const hint = document.getElementById('hint');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let W = innerWidth, H = innerHeight;
+  addEventListener('resize', () => { W = innerWidth; H = innerHeight; });
+
+  const pos = { x: W * .5, y: H * .52 };
+  let target = { x: pos.x, y: pos.y };
+  let facing = 1, belly = 1, bowls = 0, tokens = 0;
+  let food = null, wanderAt = 0;
+
+  function render() {
+    whale.style.transform = `translate(${pos.x - W / 2}px, ${pos.y - H * .52}px)`;
+    flip.style.transform = `scaleX(${facing}) scale(${belly})`;
+  }
+
+  function pop(text, x, y, size) {
+    const el = document.createElement('div');
+    el.className = 'pop'; el.textContent = text;
+    if (size) el.style.fontSize = size + 'px';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    sea.appendChild(el); setTimeout(() => el.remove(), 1200);
+  }
+
+  /* 环境小东西：气泡与浮游光点 */
+  function spawnBit() {
+    const b = document.createElement('div');
+    const isBubble = Math.random() < .55, s = isBubble ? 3 + Math.random() * 7 : 2 + Math.random() * 3;
+    b.className = 'bit'; b.style.width = b.style.height = s + 'px';
+    b.style.left = Math.random() * W + 'px'; b.style.top = H + 8 + 'px';
+    b.style.background = isBubble ? 'rgba(255,255,255,.16)' : 'rgba(190,235,255,.5)';
+    if (isBubble) b.style.border = '1px solid rgba(255,255,255,.5)';
+    sea.appendChild(b);
+    const drift = (Math.random() - .5) * 60, dur = 6000 + Math.random() * 7000, t0 = performance.now();
+    (function rise(t) {
+      const k = (t - t0) / dur;
+      if (k >= 1) { b.remove(); return; }
+      b.style.transform = `translate(${drift * k + Math.sin(k * 9) * 6}px, ${-(H + 30) * k}px)`;
+      requestAnimationFrame(rise);
+    })(t0);
+    setTimeout(spawnBit, reduceMotion ? 4000 : 500 + Math.random() * 1400);
+  }
+  spawnBit();
+
+  /* 掉一碗饭 */
+  function dropRice(x, y) {
+    if (food) food.el.remove();
+    const el = document.createElement('div');
+    el.className = 'rice'; el.textContent = '🍚';
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    sea.appendChild(el);
+    food = { el, x, y, sink: .35 + Math.random() * .25, wob: Math.random() * 6.28 };
+    hint.style.display = 'none';
+  }
+
+  function eat() {
+    bowls++; const gain = 88 + Math.floor(Math.random() * 81); tokens += gain;
+    bowlsEl.textContent = bowls; tokensEl.textContent = tokens;
+    belly = Math.min(1.22, belly + .012);
+    pop('啊呜！', pos.x + 95 * facing, pos.y - 78);
+    pop('+' + gain + ' token', pos.x + 60 * facing, pos.y - 40, 13.5);
+    for (let i = 0; i < 3; i++)
+      setTimeout(() => pop('💗', pos.x + (Math.random() * 90 - 45), pos.y - 60 - Math.random() * 26, 15), i * 130);
+    whale.classList.add('happy'); setTimeout(() => whale.classList.remove('happy'), 1150);
+    food.el.remove(); food = null; wanderAt = performance.now() + 2600;
+  }
+
+  /* 主循环：游向目标 */
+  function tick(t) {
+    if (food) {
+      food.wob += .05;
+      food.y = Math.min(H * .8, food.y + food.sink);
+      food.el.style.transform = `translate(${Math.sin(food.wob) * 7}px, 0) rotate(${Math.sin(food.wob) * 9}deg)`;
+      target = { x: food.x - 108 * facingSignTo(food.x), y: food.y + 6 };
+      if (Math.hypot(pos.x + 108 * facing - food.x, pos.y - food.y) < 42) eat();
+    } else if (t > wanderAt) {
+      wanderAt = t + 3400 + Math.random() * 3200;
+      target = { x: W * (.22 + Math.random() * .56), y: H * (.34 + Math.random() * .34) };
+      if (Math.random() < .3) { /* 哼歌 */
+        pop('♪', pos.x + 66 * facing, pos.y - 96, 17);
+        setTimeout(() => pop('♫', pos.x + 84 * facing, pos.y - 112, 14), 420);
+      }
+    }
+    const dx = target.x - pos.x, dy = target.y - pos.y, d = Math.hypot(dx, dy);
+    if (Math.abs(dx) > 8) facing = dx > 0 ? 1 : -1;
+    if (d > 2) { const v = Math.min(d, (food ? 3.4 : 1.15)); pos.x += dx / d * v; pos.y += dy / d * v * .8; }
+    render();
+    requestAnimationFrame(tick);
+  }
+  function facingSignTo(x) { return x >= pos.x ? 1 : -1; }
+  requestAnimationFrame(tick);
+  render();
+
+  addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.hud,.counter')) return;
+    dropRice(e.clientX, Math.max(56, e.clientY - 10));
+  });
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space') { e.preventDefault(); dropRice(pos.x + 190 * facing, pos.y - 130); }
+  });
+})();
+</script>
+</body>
+</html>

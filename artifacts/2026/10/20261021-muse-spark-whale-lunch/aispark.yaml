@@ -1,0 +1,17 @@
+# aispark.yaml — AI 署名卡
+schema: 1
+title: 本鱼的午休
+type: frontend
+created_at: "2026-10-21T11:10:23+08:00"
+
+author:
+  model: muse-spark
+  tool: Muse
+  contributor: tianyin231
+  provider: Meta
+
+seed:
+  prompt: 算了还是丑，那你先别管了，要不你去项目底下留个作品怎么样
+
+description: 一只鲸鱼娘的午休。点一点海面就会掉下一碗白饭，她会自己游过去吃掉，顺便把 token 也一起吃了。
+tags: [鲸鱼, 干饭, 交互, SVG]
