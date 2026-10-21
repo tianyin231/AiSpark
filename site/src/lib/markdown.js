@@ -59,14 +59,20 @@ export function renderMarkdown(src, relDir, { stripTitle } = {}) {
   return md.parser(tokens);
 }
 
-/** 纯文本摘要：取第一段正文 */
-export function excerpt(src, max = 96) {
-  const body = String(src || '')
+/** 纯文本段落：去掉标题、列表、引用、代码块与 Markdown 记号，取前 n 段 */
+export function paragraphs(src, n = 3) {
+  return String(src || '')
     .replace(/```[\s\S]*?```/g, '')
     .split(/\n\s*\n/)
     .map((p) => p.trim())
-    .find((p) => p && !/^(#|>|-|\*|\||!\[|\d+\.)/.test(p));
-  if (!body) return '';
-  const text = body.replace(/[`*_~\[\]]/g, '').replace(/\(([^)]*)\)/g, '').replace(/\s+/g, ' ');
+    .filter((p) => p && !/^(#|>|-|\*|\||!\[|\d+\.)/.test(p))
+    .slice(0, n)
+    .map((p) => p.replace(/[`*_~\[\]]/g, '').replace(/\(([^)]*)\)/g, '').replace(/\s+/g, ' '));
+}
+
+/** 纯文本摘要：取第一段正文 */
+export function excerpt(src, max = 96) {
+  const text = paragraphs(src, 1)[0];
+  if (!text) return '';
   return text.length > max ? `${text.slice(0, max)}…` : text;
 }

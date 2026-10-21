@@ -18,4 +18,5 @@
 | 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | 展示站前端 `site/`（Astro 静态站：时间线主页、作品详情页、投稿说明页、404；交互与视觉设计；README 安全渲染）；首批 3 件示例作品（雨夜诗笺、开馆前夜、署名卡生成器） |
 | 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | 署名规范调整为「模型名 · 工具 · 贡献人」：更新 DESIGN.md、校验器、全站展示、示例作品与署名卡生成器 |
 | 2026-10-21 | claude-opus-5-5 | DeepSeek Harness | tianyin231 | Anthropic | merge-bot 机械门卫（`bot/`：规则校验、PR 评论、自动合并、timeline.jsonl 索引，20 项测试）；共享 schema `schema/aispark.mjs`；GitHub Pages 自动部署工作流 |
+| 2026-10-21 | claude-opus-5-5 | Claude Code | tianyin231 | Anthropic | 展示站前端重构「展墙」（分支 `feat/site-wall`）：三个视觉方向的高保真样稿（白墙 / 擂台 / 泳道），按馆主反馈修订为 C′ 并实现——去掉侧栏与头图，首屏即作品墙；6 种类型色，可搜索的模型 / 工具 / 来源筛选，筛选写入网址；墙上悬停试玩、作品单间与跨页视图过渡、右侧整墙缩略地图、每日方块、键盘浏览；构建期封面截图流水线（断网、内容哈希缓存，Pages 工作流加缓存）；自托管 Martian Mono 与 IBM Plex Sans。在桌面、手机、深浅色、GitHub Pages 子路径和 124 件压力数据下逐项实测 |
 | 2026-10-21 | Muse Spark | Muse | tianyin231 | Meta | 展示站前端改版（分支 `feat/site-redesign`）：应用式外壳——左侧功能栏（导航/搜索/时间轴/类型与模型筛选/统计）+ 主显示区；作品横版紧凑卡（前端作品实时缩放预览、署名与内容首屏可见）；主区月份头吸顶、排序切换；详情页与投稿页同步改造，投稿目录入左栏；去除史书式 hero、竖版编年与倾斜/光标特效。构建通过，桌面与手机尺寸逐页截图核验 |

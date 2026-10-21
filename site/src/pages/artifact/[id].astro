@@ -1,193 +1,153 @@
 ---
+// 作品单间：作品画面占主位并真正运行，署名在右；下方是自述、署名卡与文件。
+// 从展墙进入时，墙上的缩略图会放大成这里的作品画面（两边都叫 stage 的页面过渡）。
 import Base from '../../layouts/Base.astro';
 import { getArtifacts, getArtifact, formatSize } from '../../lib/archive.js';
 import { renderMarkdown } from '../../lib/markdown.js';
 import { url, rawUrl } from '../../lib/url.js';
-import { cnMonth } from '../../lib/calendar.js';
 import { SITE } from '../../lib/config.js';
+import '../../styles/room.css';
 
 export function getStaticPaths() {
   return getArtifacts().map((a) => ({ params: { id: a.id } }));
 }
 
 const item = getArtifact(Astro.params.id);
-const prev = item.prevId ? getArtifact(item.prevId) : null;
-const next = item.nextId ? getArtifact(item.nextId) : null;
+const older = item.prevId ? getArtifact(item.prevId) : null;
+const newer = item.nextId ? getArtifact(item.nextId) : null;
 const html = renderMarkdown(item.readme, item.relDir, { stripTitle: true });
-const previewSrc = item.hasIndex ? rawUrl(item.relDir, 'index.html') : null;
+// 作品画面的 iframe 用 loading="lazy"：等页面布局完成后才加载，作品脚本读到的就是画面的真实尺寸，
+// 否则有的作品会按 iframe 默认的 300×150 初始化
+const live = item.hasIndex ? rawUrl(item.relDir, 'index.html') : null;
+const isArticle = !live && item.type === 'article' && html.trim();
+const stageImg = item.cover ? rawUrl(item.relDir, item.cover) : item.images[0] ? rawUrl(item.relDir, item.images[0]) : null;
 const gallery = item.type === 'image' || item.type === 'mixed' ? item.images : [];
-const pad = (n) => String(n).padStart(2, '0');
-const dateText = `${item.date.y} 年 ${cnMonth(item.date.m)} ${item.date.d} 日`;
+const pad = (n: number) => String(n).padStart(2, '0');
+const when = `${item.date.y}-${pad(item.date.m)}-${pad(item.date.d)}${item.date.time ? ` ${item.date.time}` : ''}`;
+const { model, tool, contributor, provider, anonymous } = item.author;
+const sign = `${model} · ${tool} · ${contributor}`;
 const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只直链不会执行的文件
+const totalSize = item.files.reduce((s: number, f: { size: number }) => s + f.size, 0);
 ---
-<Base title={item.title} description={item.description}>
-  <Fragment slot="side">
-    <div class="side-section">
-      <div class="side-label"><span>相邻作品</span></div>
-      <div class="side-list">
-        {next ? (
-          <a class="side-item side-link" href={url(`/artifact/${next.id}/`)}>
-            <span class="side-link-main"><span class="side-link-k">较新 · No.{next.no}</span><span class="side-link-t">{next.title}</span></span>
-          </a>
-        ) : (
-          <span class="side-item is-dim"><span>这是最新入馆的作品</span></span>
-        )}
-        {prev ? (
-          <a class="side-item side-link" href={url(`/artifact/${prev.id}/`)}>
-            <span class="side-link-main"><span class="side-link-k">较早 · No.{prev.no}</span><span class="side-link-t">{prev.title}</span></span>
-          </a>
-        ) : (
-          <span class="side-item is-dim"><span>这是第一件入馆作品</span></span>
-        )}
-      </div>
+<Base title={item.title} description={item.description} section="作品">
+  <div class="room">
+    <div class="room-bar">
+      <a class="btn" href={url('/')} data-back>← 展墙</a>
+      <span class="room-path">No.{item.no} · artifacts/{item.relDir}/</span>
+      <nav class="room-nav" aria-label="相邻作品">
+        {newer
+          ? <a class="btn" href={url(`/artifact/${newer.id}/`)} data-newer title={`较新：${newer.title}`}>← 较新</a>
+          : <span class="btn" aria-disabled="true">← 较新</span>}
+        {older
+          ? <a class="btn" href={url(`/artifact/${older.id}/`)} data-older title={`较早：${older.title}`}>较早 →</a>
+          : <span class="btn" aria-disabled="true">较早 →</span>}
+      </nav>
     </div>
-  </Fragment>
 
-  <div class="topbar">
-    <a class="back-link" href={url('/')}>
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m0 0 6-6m-6 6 6 6"/></svg>
-      全部作品
-    </a>
-    <span class="topbar-sep" aria-hidden="true">/</span>
-    <h1 class="topbar-title">{item.title}</h1>
-    <span class="count-label">No.{item.no}</span>
-  </div>
-
-  <div class="main-inner main-inner--narrow">
-    <header class="d-head">
-      <div class="d-meta">
-        <span class="type-tag" data-type={item.type}>{item.typeLabel}</span>
-        <time class="mono muted" datetime={item.createdAt}>{dateText}{item.date.time && ` ${item.date.time}`}</time>
-        {item.tags.length > 0 && (
-          <span class="d-tags">{item.tags.map((t) => <span class="chip">{t}</span>)}</span>
+    <div class="room-body">
+      <div class="room-main">
+        <div class:list={['stage', { 'is-article': isArticle, 'is-image': !live && !isArticle && stageImg }]} data-stage data-type={item.type}>
+          {live ? (
+            <iframe
+              src={live}
+              loading="lazy"
+              title={`${item.title}（作品运行画面）`}
+              sandbox="allow-scripts allow-pointer-lock"
+              allow="fullscreen"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          ) : isArticle ? (
+            <article class="sheet prose">
+              <h2 class="sheet-title">{item.title}</h2>
+              <Fragment set:html={html} />
+            </article>
+          ) : stageImg ? (
+            <img src={stageImg} alt={item.title} />
+          ) : (
+            <div class="art" style={`background:${item.art}`}><span>{item.glyph}</span></div>
+          )}
+        </div>
+        {live && (
+          <div class="stage-tools">
+            <span class="sandbox">在隔离沙箱中运行，无法访问本站数据</span>
+            <span class="stage-acts">
+              <button type="button" data-reload>↻ 重新运行</button>
+              <button type="button" data-full>⤢ 全屏</button>
+              <a href={live} target="_blank" rel="noopener">↗ 单独打开</a>
+            </span>
+          </div>
         )}
-      </div>
-      <h2 class="d-title">{item.title}</h2>
-      {item.description && <p class="d-desc">{item.description}</p>}
-      <p class="d-sign mono">
-        <b>{item.author.model}</b><i>·</i>{item.author.tool}<i>·</i><span class:list={{ 'is-anon': item.author.anonymous }}>{item.author.contributor}</span>
-      </p>
-    </header>
-
-    <div class="d-body">
-      <div class="d-main">
-        {previewSrc && (
-          <section class="frame is-loading" data-frame aria-label="作品预览">
-            <div class="frame-bar">
-              <span class="frame-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span class="frame-url mono">{item.id}/index.html</span>
-              <div class="frame-tools">
-                <button class="icon-btn" type="button" data-frame-reload aria-label="重新运行">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" /></svg>
-                </button>
-                <button class="icon-btn" type="button" data-frame-full aria-label="全屏">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
-                </button>
-              </div>
-            </div>
-            <div class="frame-view">
-              <!-- 不加 allow-same-origin：作品脚本无法读取主站 Cookie / 存储，也无法操作父页面 -->
-              <iframe
-                src={previewSrc}
-                title={`${item.title} 预览`}
-                sandbox="allow-scripts allow-pointer-lock"
-                allow="clipboard-write; fullscreen"
-                referrerpolicy="no-referrer"
-                loading="lazy"
-              ></iframe>
-            </div>
-            <p class="frame-note muted">作品在隔离沙箱中运行，无法访问本站数据。</p>
-          </section>
-        )}
-
-        {gallery.length > 0 && (
-          <section class="gallery" aria-label="图片">
-            {gallery.map((src) => (
+        {gallery.length > 1 && (
+          <div class="gallery" aria-label="作品图片">
+            {gallery.map((src: string) => (
               <a href={rawUrl(item.relDir, src)} data-zoom data-alt={src}>
                 <img src={rawUrl(item.relDir, src)} alt={src} loading="lazy" />
               </a>
             ))}
-          </section>
-        )}
-
-        {html.trim() && (
-          <section class="prose" aria-label="作品自述">
-            <Fragment set:html={html} />
-          </section>
+          </div>
         )}
       </div>
 
-      <aside class="d-side">
-        <section class="sign-card">
-          <span class="eyebrow">署名卡</span>
-          <dl class="sign-list">
-            <div><dt>模型名</dt><dd class="lead">{item.author.model}</dd></div>
-            <div><dt>工具</dt><dd>{item.author.tool}</dd></div>
-            <div><dt>贡献人</dt><dd class:list={{ 'is-anon': item.author.anonymous }}>{item.author.contributor}</dd></div>
-            {item.author.provider && <div><dt>模型来源</dt><dd>{item.author.provider}</dd></div>}
-            <div><dt>入馆时间</dt><dd class="mono">{item.date.y}-{pad(item.date.m)}-{pad(item.date.d)}{item.date.time && ` ${item.date.time}`}</dd></div>
-          </dl>
-          <details class="yaml">
-            <summary>
-              <span>查看 aispark.yaml</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
-            </summary>
-            <div class="yaml-body">
-              <pre id="yaml-src"><code>{item.rawYaml}</code></pre>
-              <button class="btn btn--ghost btn--sm" type="button" data-copy="#yaml-src"><span data-copy-label>复制</span></button>
-            </div>
-          </details>
-        </section>
-
-        {item.seed && (item.seed.repo || item.seed.prompt) && (
-          <section class="side-block">
-            <span class="eyebrow">创作来源</span>
-            <dl class="kv">
-              {item.seed.prompt && <div><dt>命题</dt><dd>{item.seed.prompt}</dd></div>}
-              {item.seed.repo && (
-                <div><dt>仓库</dt><dd><a class="link mono" href={item.seed.repo} target="_blank" rel="noopener noreferrer nofollow">{String(item.seed.repo).replace(/^https?:\/\//, '')}</a></dd></div>
-              )}
-            </dl>
-          </section>
-        )}
-
-        <section class="side-block">
-          <span class="eyebrow">文件 · {item.files.length}</span>
-          <ul class="files mono">
-            {item.files.map((f) => (
-              <li>
-                {SAFE_LINK.test(f.path)
-                  ? <a class="link" href={rawUrl(item.relDir, f.path)} target="_blank" rel="noopener">{f.path}</a>
-                  : <span>{f.path}</span>}
-                <span class="muted">{formatSize(f.size)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section class="side-block license">
-          <span class="eyebrow">许可</span>
-          <p>以 <a class="link" href="https://creativecommons.org/licenses/by/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">{SITE.license}</a> 发布。转载请署名：<br /><span class="mono">{item.author.model} · {item.author.tool} · {item.author.contributor}</span></p>
-        </section>
+      <aside class="info">
+        <p class="info-cap"><span class="sq" data-type={item.type}></span>{item.typeLabel} · {when} 入馆</p>
+        <h1 class="info-title">{item.title}</h1>
+        {item.description && <p class="info-desc">{item.description}</p>}
+        <dl class="sig">
+          <div><dt>模型名</dt><dd class="lead">{model}</dd></div>
+          <div><dt>工具</dt><dd>{tool}</dd></div>
+          <div><dt>贡献人</dt><dd class:list={{ anon: anonymous }}>{contributor}</dd></div>
+          {provider && <div><dt>模型来源</dt><dd>{provider}</dd></div>}
+          {item.seed?.prompt && <div><dt>命题</dt><dd class="plain">{item.seed.prompt}</dd></div>}
+          {item.seed?.repo && (
+            <div><dt>命题仓库</dt><dd><a class="ext" href={item.seed.repo} target="_blank" rel="noopener noreferrer nofollow">{String(item.seed.repo).replace(/^https?:\/\//, '')}</a></dd></div>
+          )}
+        </dl>
+        {item.tags.length > 0 && <div class="tags">{item.tags.map((t: string) => <span>{t}</span>)}</div>}
+        <div class="info-acts">
+          <button class="btn" type="button" data-copy data-copy-text={sign}><span data-copy-label>复制署名</span></button>
+          <a class="btn" href="#more">署名卡与文件 ↓</a>
+        </div>
+        <p class="info-keys">← → 切换作品 · Esc 回到展墙</p>
       </aside>
     </div>
+  </div>
 
-    <nav class="pager" aria-label="相邻作品">
-      {prev ? (
-        <a class="pager-item" href={url(`/artifact/${prev.id}/`)}>
-          <span class="eyebrow">较早 · No.{prev.no}</span>
-          <span class="pager-title">{prev.title}</span>
-          <span class="mono muted">{prev.author.model}</span>
-        </a>
-      ) : <span class="pager-item is-empty"><span class="eyebrow">较早</span><span class="muted">这是第一件入馆作品</span></span>}
-      {next ? (
-        <a class="pager-item is-next" href={url(`/artifact/${next.id}/`)}>
-          <span class="eyebrow">较新 · No.{next.no}</span>
-          <span class="pager-title">{next.title}</span>
-          <span class="mono muted">{next.author.model}</span>
-        </a>
-      ) : <span class="pager-item is-next is-empty"><span class="eyebrow">较新</span><span class="muted">这是最新入馆的作品</span></span>}
-    </nav>
+  <div class:list={['more', { 'is-solo': isArticle || !html.trim() }]} id="more">
+    {!isArticle && html.trim() && (
+      <section class="more-main">
+        <h2 class="more-cap">作品自述 · README.md</h2>
+        <div class="prose"><Fragment set:html={html} /></div>
+      </section>
+    )}
+    <div class="more-side">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="more-cap">署名卡 · aispark.yaml</h2>
+          <button class="link-btn" type="button" data-copy="#yaml-src"><span data-copy-label>复制</span></button>
+        </div>
+        <pre id="yaml-src"><code>{item.rawYaml}</code></pre>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="more-cap">文件 · {item.files.length}</h2>
+          <span class="more-cap">{formatSize(totalSize)}</span>
+        </div>
+        <ul class="files">
+          {item.files.map((f: { path: string; size: number }) => (
+            <li>
+              {SAFE_LINK.test(f.path)
+                ? <a href={rawUrl(item.relDir, f.path)} target="_blank" rel="noopener">{f.path}</a>
+                : <span>{f.path}</span>}
+              <span>{formatSize(f.size)}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section class="panel">
+        <h2 class="more-cap">许可</h2>
+        <p class="license">以 <a href="https://creativecommons.org/licenses/by/4.0/deed.zh-hans" target="_blank" rel="noopener noreferrer">{SITE.license}</a> 发布。转载请署名：<br /><span>{sign}</span></p>
+      </section>
+    </div>
   </div>
 
   <dialog class="lightbox" data-lightbox aria-label="图片预览">
@@ -195,132 +155,6 @@ const SAFE_LINK = /\.(md|txt|ya?ml|json|png|jpe?g|gif|webp|avif|csv)$/i; // 只�
   </dialog>
 </Base>
 
-<style>
-  .side-link { text-decoration: none; }
-  .side-link-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-  .side-link-k { font-size: 11px; color: var(--ink-3); }
-  .side-link-t { font-size: 13.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .side-item.is-dim { cursor: default; color: var(--ink-3); font-size: 12.5px; }
-  .side-item.is-dim:hover { background: transparent; }
-
-  .back-link { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; color: var(--ink-2); white-space: nowrap; }
-  .back-link:hover { color: var(--accent); }
-  .topbar-sep { color: var(--ink-3); }
-  .topbar-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-
-  .d-head { padding: 6px 0 26px; border-bottom: 1px solid var(--line); margin-bottom: 30px; }
-  .d-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 12.5px; }
-  .d-meta time { font-size: 12px; }
-  .d-tags { display: inline-flex; gap: 6px; flex-wrap: wrap; }
-  .d-title { margin: 16px 0 0; font-size: clamp(28px, 3.6vw, 40px); line-height: 1.25; font-weight: 700; letter-spacing: 0.01em; }
-  .d-desc { margin: 14px 0 0; font-size: 16px; color: var(--ink-2); line-height: 1.85; max-width: 680px; }
-  .d-sign { margin: 18px 0 0; font-size: 13px; color: var(--ink-3); }
-  .d-sign b { color: var(--ink); font-weight: 550; }
-  .d-sign i { font-style: normal; opacity: 0.5; margin: 0 6px; }
-  .d-sign .is-anon { font-style: italic; opacity: 0.75; }
-
-  .d-body { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 36px; align-items: start; }
-  .d-main { display: flex; flex-direction: column; gap: 36px; min-width: 0; }
-  .d-side { position: sticky; top: calc(var(--topbar-h) + 24px); display: flex; flex-direction: column; gap: 14px; }
-  @media (max-width: 960px) {
-    .d-body { grid-template-columns: 1fr; }
-    .d-side { position: static; }
-  }
-
-  /* ---------- 预览框 ---------- */
-  .frame { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); overflow: hidden; box-shadow: var(--shadow); }
-  .frame-bar { display: flex; align-items: center; gap: 14px; height: 44px; padding: 0 8px 0 16px; border-bottom: 1px solid var(--line); }
-  .frame-dots { display: flex; gap: 6px; }
-  .frame-dots i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line-2); }
-  .frame-url { flex: 1; font-size: 12px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .frame-tools { display: flex; gap: 2px; }
-  .frame-view { position: relative; aspect-ratio: 16 / 10; background: var(--paper-2); }
-  .frame-view iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; transition: opacity 0.3s; }
-  .frame.is-loading iframe { opacity: 0.3; }
-  .frame-note { margin: 0; padding: 9px 16px; font-size: 12px; border-top: 1px solid var(--line); }
-  .frame:fullscreen { border-radius: 0; display: flex; flex-direction: column; }
-  .frame:fullscreen .frame-view { flex: 1; aspect-ratio: auto; }
-  @media (max-width: 640px) { .frame-view { aspect-ratio: 3 / 4; } }
-
-  /* ---------- 画廊 ---------- */
-  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-  .gallery a { border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--paper-2); aspect-ratio: 1; }
-  .gallery img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s var(--ease); }
-  .gallery a:hover img { transform: scale(1.05); }
-
-  .lightbox { border: 0; padding: 0; background: transparent; max-width: 92vw; max-height: 92vh; }
-  .lightbox::backdrop { background: rgba(10, 10, 12, 0.82); }
-  .lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 8px; }
-
-  /* ---------- 正文 ---------- */
-  .prose { max-width: 720px; font-size: 15.5px; line-height: 1.9; color: var(--ink); }
-  .prose :global(h2) { font: 650 22px/1.4 var(--sans); margin: 2em 0 0.7em; letter-spacing: 0.02em; }
-  .prose :global(h3) { font: 650 18px/1.4 var(--sans); margin: 1.7em 0 0.5em; }
-  .prose :global(p) { margin: 0 0 1.15em; }
-  .prose :global(a) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--accent-soft); }
-  .prose :global(a:hover) { text-decoration-color: currentColor; }
-  .prose :global(ul), .prose :global(ol) { padding-left: 1.4em; margin: 0 0 1.2em; }
-  .prose :global(li) { margin: 0.3em 0; }
-  .prose :global(li::marker) { color: var(--ink-3); }
-  .prose :global(code) { font: 0.88em var(--mono); background: var(--paper-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; }
-  .prose :global(pre) { background: var(--paper-2); border: 1px solid var(--line); padding: 16px 18px; border-radius: 10px; overflow: auto; font-size: 13px; line-height: 1.7; }
-  .prose :global(pre code) { background: none; border: 0; padding: 0; }
-  .prose :global(blockquote) { margin: 1.6em 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--accent); color: var(--ink-2); }
-  .prose :global(blockquote p) { margin: 0; }
-  .prose :global(img) { border-radius: 10px; border: 1px solid var(--line); margin: 1.4em 0; }
-  .prose :global(hr) { border: 0; border-top: 1px solid var(--line); margin: 2.4em 0; }
-  .prose :global(table) { border-collapse: collapse; width: 100%; font-size: 14px; margin: 0 0 1.4em; }
-  .prose :global(th), .prose :global(td) { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
-
-  /* ---------- 署名卡 ---------- */
-  .sign-card {
-    padding: 20px 20px 16px;
-    border-radius: var(--radius);
-    background: var(--card);
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-  }
-  .sign-list { margin: 16px 0 0; display: grid; gap: 12px; }
-  .sign-list div { display: grid; gap: 1px; }
-  .sign-list dt, .kv dt { font-size: 11px; color: var(--ink-3); letter-spacing: 0.1em; }
-  .sign-list dd { margin: 0; font-size: 14.5px; word-break: break-word; }
-  .sign-list dd.lead { font: 600 16.5px/1.4 var(--mono); letter-spacing: -0.01em; }
-  .sign-list dd.is-anon { color: var(--ink-3); font-style: italic; }
-
-  .yaml { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 12px; }
-  .yaml summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 13px; color: var(--ink-2); transition: color 0.2s; }
-  .yaml summary::-webkit-details-marker { display: none; }
-  .yaml summary:hover { color: var(--ink); }
-  .yaml summary svg { width: 16px; height: 16px; transition: transform 0.3s var(--ease); }
-  .yaml[open] summary svg { transform: rotate(180deg); }
-  .yaml-body { margin-top: 12px; display: grid; gap: 10px; justify-items: start; }
-  .yaml pre { margin: 0; width: 100%; max-height: 300px; overflow: auto; background: var(--paper-2); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font: 11.5px/1.65 var(--mono); }
-
-  .side-block { padding: 16px 20px; border-radius: var(--radius); border: 1px solid var(--line); background: var(--paper); }
-  .kv { margin: 12px 0 0; display: grid; gap: 10px; }
-  .kv div { display: grid; gap: 1px; }
-  .kv dd { margin: 0; font-size: 13.5px; word-break: break-all; }
-  .files { list-style: none; margin: 12px 0 0; padding: 0; font-size: 12px; display: grid; gap: 7px; }
-  .files li { display: flex; justify-content: space-between; gap: 12px; }
-  .files li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .files li > .muted { flex: none; }
-  .license p { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.8; }
-  .license .mono { font-size: 11.5px; color: var(--ink); }
-
-  /* ---------- 翻页 ---------- */
-  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 64px; padding-top: 28px; border-top: 1px solid var(--line); }
-  .pager-item {
-    display: flex; flex-direction: column; gap: 7px;
-    padding: 18px 20px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    background: var(--card);
-    transition: border-color 0.25s, box-shadow 0.3s;
-  }
-  a.pager-item:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); }
-  .pager-item.is-next { text-align: right; align-items: flex-end; }
-  .pager-item.is-empty { background: transparent; border-style: dashed; font-size: 13px; }
-  .pager-title { font-size: 18px; font-weight: 650; }
-  .pager-item .mono { font-size: 12px; }
-  @media (max-width: 640px) { .pager { grid-template-columns: 1fr; } .pager-item.is-next { text-align: left; align-items: flex-start; } }
-</style>
+<script>
+  import '../../scripts/room.js';
+</script>

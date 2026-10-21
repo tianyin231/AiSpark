@@ -1,0 +1,69 @@
+/* =========================================================
+   投稿说明：单栏正文 + 右侧吸顶目录
+   ========================================================= */
+
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 760px) 180px;
+  justify-content: center;
+  gap: 64px;
+  padding: 44px var(--pad-x) 96px;
+}
+.about-main { display: flex; flex-direction: column; gap: 64px; min-width: 0; }
+
+.about-head h1 { margin: 0; font: 700 clamp(28px, 3.6vw, 40px)/1.25 var(--sans); letter-spacing: -0.01em; text-wrap: balance; }
+.about-head p { margin: 14px 0 0; font-size: 15.5px; line-height: 1.85; color: var(--ink-2); }
+
+.block { scroll-margin-top: calc(var(--head-h, 58px) + 20px); }
+.block h2 { margin: 0 0 18px; font: 700 22px/1.35 var(--sans); }
+.block p { margin: 0 0 1.1em; font-size: 15px; line-height: 1.9; color: var(--ink-2); }
+.block strong { color: var(--ink); font-weight: 600; }
+.block code { padding: 1px 6px; border-radius: 4px; background: var(--hover); font: 0.86em var(--mono); color: var(--ink); }
+
+.types { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 24px; overflow: hidden; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--rule); }
+.type-cell { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; background: var(--panel); }
+.type-name { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.type-cell .mono { font-size: 11px; }
+
+.steps { counter-reset: step; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0 0 24px; padding: 0; }
+.step { counter-increment: step; padding: 16px 18px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.step::before { content: counter(step, decimal-leading-zero); font: 11px var(--mono); color: var(--focus); }
+.step h3 { margin: 6px 0 4px; font-size: 15.5px; }
+.step p { margin: 0; font-size: 13.5px; line-height: 1.75; }
+
+.code-card { overflow: hidden; margin: 8px 0 24px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--panel); }
+.code-bar { display: flex; justify-content: space-between; align-items: center; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--rule); font: 11.5px var(--mono); color: var(--ink-3); }
+.code-card pre { margin: 0; padding: 16px 18px; overflow: auto; background: var(--bg); font: 12px/1.85 var(--mono); color: var(--ink); }
+.code-card pre.wrap { white-space: pre-wrap; }
+.link-btn { font: 600 12.5px var(--sans); color: var(--ink); border-bottom: 1px solid currentColor; }
+.link-btn:hover { color: var(--focus); }
+
+.table-scroll { overflow-x: auto; }
+.fields { width: 100%; min-width: 520px; border-collapse: collapse; font-size: 13.5px; }
+.fields th { padding: 10px 12px; border-bottom: 1px solid var(--ink); text-align: left; font: 500 11px var(--mono); color: var(--ink-3); }
+.fields td { padding: 10px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; color: var(--ink-2); }
+.fields td.mono { font-size: 12px; color: var(--ink); white-space: nowrap; }
+
+.rules { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.rules li { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 18px; padding: 14px 2px; border-bottom: 1px solid var(--rule); font-size: 14.5px; }
+.rules span { line-height: 1.8; color: var(--ink-2); }
+
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.cta .btn-solid { height: 36px; }
+.cta .btn { height: 36px; }
+
+.toc { position: sticky; top: calc(var(--head-h, 58px) + 44px); align-self: start; display: flex; flex-direction: column; gap: 2px; }
+.toc-cap { margin: 0 0 8px; font: 500 11px var(--mono); color: var(--ink-3); }
+.toc a { padding: 5px 10px; border-left: 2px solid var(--rule); font-size: 13px; color: var(--ink-2); transition: color 0.2s, border-color 0.2s; }
+.toc a:hover { color: var(--ink); }
+.toc a.is-active { border-color: var(--focus); color: var(--ink); font-weight: 600; }
+
+@media (max-width: 960px) {
+  .about { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 28px; }
+  .toc { display: none; }
+}
+@media (max-width: 560px) {
+  .types { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steps { grid-template-columns: 1fr; }
+  .rules li { grid-template-columns: 1fr; gap: 2px; }
+}

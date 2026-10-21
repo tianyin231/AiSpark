@@ -1,0 +1,227 @@
+/* =========================================================
+   展墙：作品网格 / 列表、月份标题与每日方块、墙上试玩、
+   筛选面板与标签、右侧缩略地图、键盘提示
+   （wall.js 会动态生成其中一部分元素，所以这里不用组件作用域样式）
+   ========================================================= */
+
+.wall-wrap {
+  --rail-w: 96px;
+  padding: 18px calc(var(--pad-x) + var(--rail-w) + 12px) 96px var(--pad-x);
+}
+.wall {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  gap: 26px 20px;
+}
+
+/* ---------- 月份标题 ---------- */
+.month { grid-column: 1 / -1; display: flex; align-items: center; gap: 14px; min-width: 0; padding-top: 10px; }
+.month:first-child { padding-top: 0; }
+.month-title { margin: 0; font: 700 14px/1.4 var(--sans); white-space: nowrap; }
+.month-n { font: 11px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.days { display: flex; gap: 3px; min-width: 0; overflow: hidden; }
+.days button { width: 9px; height: 9px; flex: none; border-radius: 2px; background: var(--rule); transition: background 0.2s; }
+.days button[data-c="1"] { background: color-mix(in srgb, var(--ink) 30%, var(--rule)); }
+.days button[data-c="2"] { background: color-mix(in srgb, var(--ink) 58%, var(--rule)); }
+.days button[data-c="3"] { background: var(--ink); }
+.days button:disabled { cursor: default; }
+.days button:not(:disabled):hover { outline: 1.5px solid var(--focus); outline-offset: 1px; }
+.days button[aria-pressed="true"] { background: var(--focus); }
+.month-line { flex: 1; min-width: 20px; height: 1px; background: var(--rule); }
+
+/* ---------- 作品卡 ---------- */
+.card { position: relative; min-width: 0; }
+.thumb {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 11px;
+  background: var(--hover);
+  transition: box-shadow 0.3s;
+}
+/* 缩略图本身不能加 transform：那会让它自成层叠上下文，试玩中的 iframe 就被标题链接的点击层盖住 */
+.thumb > img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform 0.6s var(--ease); }
+.card:hover .thumb { box-shadow: var(--lift); }
+.card:hover .thumb > img { transform: scale(1.035); }
+.card:has(.card-link:focus-visible) .thumb, .card.is-live .thumb { box-shadow: var(--ring), var(--lift); }
+.card-link:focus-visible { outline: none; }
+
+/* 文字作品：一页纸 */
+.page { position: absolute; inset: 0; overflow: hidden; padding: 17% 10% 8%; background: #fbfbf9; color: #1d1d1b; font-family: var(--serif); }
+.page b { display: block; margin-bottom: 0.8em; font-size: 18px; letter-spacing: 0.06em; }
+.page p { margin: 0 0 0.8em; font-size: 12px; line-height: 2; color: #44443f; }
+.page::after { content: ""; position: absolute; inset: auto 0 0; height: 45%; background: linear-gradient(transparent, #fbfbf9); }
+
+/* 兜底色块 */
+.art { position: absolute; inset: 0; display: grid; place-items: center; }
+.art span { font: 700 48px/1 var(--sans); color: rgb(255 255 255 / 0.82); text-shadow: 0 2px 18px rgb(0 0 0 / 0.25); }
+
+.type-tag {
+  position: absolute; z-index: 3; left: 9px; top: 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 22px; padding: 0 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 90%, transparent);
+  backdrop-filter: blur(6px);
+  font: 500 11.5px var(--sans); color: var(--ink);
+  pointer-events: none;
+}
+.play {
+  position: absolute; z-index: 3; left: 9px; bottom: 9px;
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 24px; padding: 0 9px;
+  border-radius: 6px;
+  background: rgb(15 16 19 / 0.78); color: #fff;
+  font: 11px var(--mono);
+  opacity: 0; transform: translateY(4px);
+  transition: opacity 0.25s, transform 0.25s;
+}
+.card:hover .play, .card:has(.card-link:focus-visible) .play, .card.is-live .play { opacity: 1; transform: none; }
+.card.is-live .play::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #3fdc8b; animation: live-pulse 1.4s infinite; }
+@keyframes live-pulse { 50% { opacity: 0.35; } }
+
+/* 墙上试玩：作品按 1280×800 渲染再等比缩小到缩略图 */
+.thumb iframe { position: absolute; z-index: 2; left: 0; top: 0; width: 1280px; height: 800px; border: 0; background: #fff; transform-origin: 0 0; }
+.thumb.is-loading::after { content: ""; position: absolute; z-index: 4; left: 0; top: 0; width: 40%; height: 2px; background: var(--focus); animation: live-load 1s infinite ease-in-out; }
+@keyframes live-load { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+
+.meta { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; padding: 11px 2px 0; }
+.title { margin: 0; font: 700 15.5px/1.4 var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: 11px; }
+.card:hover .title { color: var(--focus); }
+.no { font: 11px/1.9 var(--mono); color: var(--ink-3); white-space: nowrap; }
+.desc { grid-column: 1 / -1; margin: 0; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sign { grid-column: 1 / -1; margin: 3px 0 0; font: 11px/1.6 var(--mono); color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sign b { font-weight: 500; color: var(--ink); }
+.sign .anon { font-style: italic; }
+.kind { display: none; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+
+/* ---------- 列表视图 ---------- */
+.wall.is-list { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.wall.is-list .month { padding: 22px 0 8px; }
+.wall.is-list .month:first-child { padding-top: 0; }
+.wall.is-list .card { display: grid; grid-template-columns: 168px minmax(0, 1fr); gap: 20px; align-items: center; padding: 10px; border-radius: 10px; }
+.wall.is-list .card:hover { background: var(--hover); }
+.wall.is-list .card:hover .thumb { box-shadow: none; }
+.wall.is-list .card:hover .thumb > img { transform: none; }
+.wall.is-list .meta { padding: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 300px) 130px; align-items: center; }
+.wall.is-list .title { grid-column: 1; grid-row: 1; }
+.wall.is-list .desc { grid-column: 1; grid-row: 2; }
+.wall.is-list .sign { grid-column: 2; grid-row: 1 / 3; margin: 0; }
+.wall.is-list .kind { display: inline-flex; grid-column: 3; grid-row: 1; justify-self: end; }
+.wall.is-list .no { grid-column: 3; grid-row: 2; text-align: right; }
+.wall.is-list .type-tag, .wall.is-list .play { display: none; }
+.wall.is-list .page b { font-size: 11px; }
+.wall.is-list .page p { display: none; }
+
+.wall-empty { grid-column: 1 / -1; margin: 0; padding: 72px 0; text-align: center; color: var(--ink-3); }
+.wall-empty button { color: var(--focus); text-decoration: underline; text-underline-offset: 3px; }
+.wall-none { display: grid; justify-items: center; gap: 8px; padding: 120px 0; text-align: center; color: var(--ink-2); }
+.wall-none p { margin: 0; }
+.wall-none-title { font-size: 22px; font-weight: 700; color: var(--ink); }
+.wall-none .btn-solid { margin-top: 16px; }
+
+/* ---------- 工具条里的筛选 ---------- */
+.facet-btn b { font: 500 11px var(--mono); color: var(--focus); }
+.facet-btn b:empty { display: none; }
+.facet-btn[aria-expanded="true"] { color: var(--ink); border-color: color-mix(in srgb, var(--ink) 30%, var(--rule)); }
+.chips { display: flex; gap: 6px; flex: none; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 26px; padding: 0 8px 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--focus) 12%, var(--panel));
+  font: 11.5px var(--mono); color: var(--ink);
+  white-space: nowrap;
+}
+.chip span { color: var(--ink-3); }
+.chip:hover { background: color-mix(in srgb, var(--focus) 22%, var(--panel)); }
+.tools-spacer { flex: 1; min-width: 8px; }
+
+.pop {
+  position: fixed; z-index: 40;
+  width: 288px;
+  padding: 8px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  box-shadow: var(--lift);
+}
+.pop input { width: 100%; height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--bg); font-size: 13px; outline: none; }
+.pop input:focus { border-color: var(--focus); }
+.pop ul { list-style: none; margin: 6px 0 0; padding: 0; max-height: 300px; overflow: auto; }
+.pop li button { width: 100%; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 7px; text-align: left; font: 12px var(--mono); }
+.pop li button:hover, .pop li button:focus-visible { background: var(--hover); outline: none; }
+.pop li button span:nth-child(2) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pop li button i { font-style: normal; color: var(--ink-3); }
+.pop .ck { width: 14px; height: 14px; display: grid; place-items: center; border: 1.5px solid var(--ink-3); border-radius: 4px; font-size: 10px; line-height: 1; }
+.pop [aria-pressed="true"] .ck { background: var(--focus); border-color: var(--focus); color: #fff; }
+.pop .pop-none { padding: 10px 8px; font-size: 12.5px; color: var(--ink-3); }
+
+/* ---------- 右侧缩略地图 ---------- */
+.rail {
+  position: fixed; z-index: 20;
+  right: var(--pad-x);
+  top: calc(var(--head-h, 110px) + 18px);
+  bottom: 56px;
+  width: var(--rail-w, 96px);
+  display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 6px;
+  user-select: none;
+}
+.rail-labels { position: relative; }
+.rail-labels span { position: absolute; right: 0; transform: translateY(-50%); font: 10px var(--mono); color: var(--ink-3); white-space: nowrap; }
+.rail-labels b { font-weight: 500; color: var(--ink-2); }
+.rail-map { position: relative; border-left: 1px solid var(--rule); cursor: ns-resize; touch-action: none; }
+.rail-map i { position: absolute; border-radius: 1.5px; background: var(--tc); opacity: 0.85; }
+.rail-map i.is-hot { opacity: 1; outline: 1.5px solid var(--ink); outline-offset: 1px; }
+.rail-vp { position: absolute; left: -4px; right: -4px; border: 1.5px solid var(--ink); border-radius: 5px; background: color-mix(in srgb, var(--ink) 6%, transparent); pointer-events: none; }
+.rail-tip { position: fixed; z-index: 41; width: 224px; overflow: hidden; background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--lift); pointer-events: none; }
+.rail-tip .tip-thumb { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: var(--hover); }
+.rail-tip .tip-thumb > img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
+.rail-tip .tip-thumb .page b { font-size: 12px; }
+.rail-tip .tip-thumb .page p { font-size: 8px; }
+.rail-tip .tip-body { padding: 8px 10px; font-size: 12.5px; }
+.rail-tip small { display: block; font: 10.5px var(--mono); color: var(--ink-3); }
+
+/* ---------- 键盘提示 ---------- */
+.hint {
+  position: fixed; z-index: 20;
+  left: var(--pad-x); bottom: 14px;
+  display: flex; gap: 14px;
+  margin: 0; padding: 7px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--panel) 92%, transparent);
+  backdrop-filter: blur(10px);
+  font: 11px var(--mono); color: var(--ink-3);
+  box-shadow: 0 6px 20px -12px rgb(0 0 0 / 0.3);
+  transition: opacity 0.3s;
+}
+.hint kbd { margin-right: 4px; padding: 0 5px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.hint.is-faded { opacity: 0; pointer-events: none; }
+
+@media (max-width: 900px) {
+  .wall-wrap { padding-right: var(--pad-x); }
+  .rail, .rail-tip, .hint { display: none !important; }
+  .wall.is-list .meta { grid-template-columns: minmax(0, 1fr) auto; }
+  .wall.is-list .sign { grid-column: 1 / -1; grid-row: 3; }
+  .wall.is-list .kind { grid-column: 2; grid-row: 2; }
+  .wall.is-list .no { grid-column: 2; grid-row: 1; }
+}
+@media (max-width: 640px) {
+  .wall:not(.is-list) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+  .wall:not(.is-list) .meta { grid-template-columns: minmax(0, 1fr); }
+  .wall:not(.is-list) .title { font-size: 14px; }
+  .wall:not(.is-list) .desc { display: none; }
+  .wall:not(.is-list) .type-tag { left: 6px; top: 6px; height: 20px; padding: 0 6px; font-size: 10.5px; }
+  .wall:not(.is-list) .page { padding: 24% 9% 6%; }
+  .wall:not(.is-list) .page b { font-size: 13px; }
+  .wall:not(.is-list) .page p { font-size: 9px; line-height: 1.8; }
+  .wall.is-list .card { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; padding: 8px 0; }
+  .days { display: none; }
+  .play { opacity: 1; transform: none; }
+}
+@media (hover: none) { .play { opacity: 1; transform: none; } }

@@ -1,0 +1,61 @@
+/* =========================================================
+   AiSpark · 展墙 — 设计令牌
+   打开就是作品：中性冷灰底退后，颜色只分给 6 种作品类型
+   （schema 固定，不随模型数量增长）。中文用系统黑体，
+   编号与署名用 Martian Mono，西文正文用 IBM Plex Sans。
+   ========================================================= */
+
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #15171c;
+  --ink-2: #565b67;
+  --ink-3: #8a8f9b;
+  --rule: #e3e6eb;
+  --hover: #eceff4;
+  --focus: #3a63e0;
+
+  /* 作品类型色：缩略地图、类型标记、筛选都用这一套 */
+  --t-frontend: #e8603c;
+  --t-tool: #3a63e0;
+  --t-article: #1f9d74;
+  --t-image: #c08a1e;
+  --t-mixed: #8e5bd6;
+  --t-other: #8a8f99;
+
+  --lift: 0 18px 40px -22px rgb(21 23 28 / 0.45);
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--focus);
+
+  --cjk: "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --sans: "IBM Plex Sans", var(--cjk);
+  --mono: "Martian Mono Variable", ui-monospace, "Cascadia Mono", Consolas, var(--cjk), monospace;
+  --serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC", "SimSun", serif;
+
+  --radius: 12px;
+  --pad-x: max(16px, min(40px, 3vw));
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1013; --panel: #16181c; --ink: #e9eaee; --ink-2: #a3a8b3; --ink-3: #6f7480; --rule: #24272e; --hover: #1d2026; --focus: #7b96ff;
+    --t-frontend: #ff7a52; --t-tool: #6b8cff; --t-article: #3cc495; --t-image: #e2a93a; --t-mixed: #b083f0; --t-other: #9aa0ab;
+    --lift: 0 18px 40px -18px rgb(0 0 0 / 0.8);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1013; --panel: #16181c; --ink: #e9eaee; --ink-2: #a3a8b3; --ink-3: #6f7480; --rule: #24272e; --hover: #1d2026; --focus: #7b96ff;
+  --t-frontend: #ff7a52; --t-tool: #6b8cff; --t-article: #3cc495; --t-image: #e2a93a; --t-mixed: #b083f0; --t-other: #9aa0ab;
+  --lift: 0 18px 40px -18px rgb(0 0 0 / 0.8);
+  color-scheme: dark;
+}
+
+[data-type="frontend"] { --tc: var(--t-frontend); }
+[data-type="tool"] { --tc: var(--t-tool); }
+[data-type="article"] { --tc: var(--t-article); }
+[data-type="image"] { --tc: var(--t-image); }
+[data-type="mixed"] { --tc: var(--t-mixed); }
+[data-type="other"] { --tc: var(--t-other); }

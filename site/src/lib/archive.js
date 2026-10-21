@@ -4,12 +4,15 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join, resolve, relative, sep } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { validateMeta, DIR_RE } from '../../../schema/aispark.mjs';
-import { excerpt } from './markdown.js';
+import { excerpt, paragraphs } from './markdown.js';
 import { termOf } from './calendar.js';
 
 export const ARTIFACTS_DIR = resolve(
   process.env.AISPARK_ARTIFACTS || resolve(process.cwd(), '../artifacts'),
 );
+
+// 构建前由 scripts/capture-covers.mjs 生成的前端作品封面截图
+const COVERS_DIR = resolve(process.cwd(), 'public/covers');
 
 export const TYPES = {
   frontend: { label: '前端', en: 'Frontend' },
@@ -53,6 +56,18 @@ function findArtifactDirs(root) {
 /** 校验署名卡，返回问题列表（空数组即合法）。规则见 schema/aispark.mjs */
 export const validate = validateMeta;
 
+/** 没有封面也没有截图时的兜底色块：按作品 id 稳定生成，同一件作品每次构建都一样 */
+function artFor(id) {
+  let h = 2166136261;
+  for (const ch of id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const r = (k) => ((h >>> k) & 0xff) / 255;
+  const hue = Math.floor(r(0) * 360);
+  const ang = Math.floor(r(8) * 180);
+  const x = Math.floor(20 + r(16) * 60);
+  const y = Math.floor(20 + r(24) * 60);
+  return `radial-gradient(circle at ${x}% ${y}%, hsl(${hue} 80% 66%) 0 16%, transparent 17%), linear-gradient(${ang}deg, hsl(${hue + 200} 42% 18%), hsl(${hue + 240} 48% 32%))`;
+}
+
 function parseDate(createdAt, dirName) {
   const m = String(createdAt || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);
   const d = m || dirName.match(DIR_RE);
@@ -60,7 +75,8 @@ function parseDate(createdAt, dirName) {
   const [y, mo, da] = [Number(d[1]), Number(d[2]), Number(d[3])];
   const time = m && m[4] ? `${m[4]}:${m[5]}` : '';
   const ts = Date.parse(createdAt) || Date.UTC(y, mo - 1, da);
-  return { y, m: mo, d: da, time, ts, term: termOf(mo, da) };
+  const iso = `${y}-${String(mo).padStart(2, '0')}-${String(da).padStart(2, '0')}`;
+  return { y, m: mo, d: da, time, ts, iso, term: termOf(mo, da) };
 }
 
 function load() {
@@ -92,6 +108,7 @@ function load() {
     const images = files.filter((f) => IMAGE_EXT.test(f.path)).map((f) => f.path);
     const hasIndex = files.some((f) => f.path === 'index.html');
     const cover = meta.cover && images.includes(meta.cover) ? meta.cover : meta.type === 'image' ? images[0] : null;
+    const shot = hasIndex && existsSync(join(COVERS_DIR, `${id}.png`)) ? `/covers/${id}.png` : null;
 
     items.push({
       id,
@@ -119,6 +136,9 @@ function load() {
       images,
       hasIndex,
       cover,
+      shot,
+      paras: paragraphs(readme, 3),
+      art: artFor(id),
       glyph: Array.from(String(meta.title).trim())[0] || '·',
     });
   }
@@ -160,6 +180,7 @@ export function getStats(items) {
   const tools = new Set(items.map((i) => i.author.tool));
   const contributors = new Set(items.filter((i) => !i.author.anonymous).map((i) => i.author.contributor));
   const first = items[items.length - 1];
+  const latest = items[0];
   const typeCount = {};
   for (const i of items) typeCount[i.type] = (typeCount[i.type] || 0) + 1;
   return {
@@ -168,6 +189,7 @@ export function getStats(items) {
     tools: tools.size,
     contributors: contributors.size,
     since: first ? first.date : null,
+    latest: latest ? latest.date : null,
     typeCount,
   };
 }

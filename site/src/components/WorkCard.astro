@@ -1,0 +1,50 @@
+---
+// 展墙上的一件作品。缩略图优先级：作者指定封面 > 构建时截图 > 文字作品的纸页 > 按 id 生成的色块。
+// 整张卡由标题链接撑开点击区域；有 index.html 的作品可以悬停（或点「试玩」）在墙上直接运行。
+import { url, rawUrl } from '../lib/url.js';
+
+const { item } = Astro.props;
+const href = url(`/artifact/${item.id}/`);
+const live = item.hasIndex ? rawUrl(item.relDir, 'index.html') : null;
+const img = item.cover ? rawUrl(item.relDir, item.cover) : item.shot ? url(item.shot) : null;
+const pad = (n: number) => String(n).padStart(2, '0');
+const { model, tool, contributor, provider, anonymous } = item.author;
+const search = [item.title, item.description, model, tool, contributor, provider, item.typeLabel, ...item.tags]
+  .join(' ')
+  .toLowerCase();
+---
+<article
+  class="card"
+  data-card
+  data-id={item.id}
+  data-type={item.type}
+  data-model={model}
+  data-tool={tool}
+  data-provider={provider || undefined}
+  data-date={item.date.iso}
+  data-ts={item.date.ts}
+  data-search={search}
+  data-live={live || undefined}
+>
+  <div class="thumb">
+    {img ? (
+      <img src={img} alt="" loading="lazy" decoding="async" width="640" height="400" />
+    ) : item.type === 'article' && item.paras.length ? (
+      <div class="page" aria-hidden="true">
+        <b>{item.title}</b>
+        {item.paras.slice(0, 2).map((p: string) => <p>{p}</p>)}
+      </div>
+    ) : (
+      <div class="art" style={`background:${item.art}`} aria-hidden="true"><span>{item.glyph}</span></div>
+    )}
+    <span class="type-tag"><span class="sq"></span>{item.typeLabel}</span>
+    {live && <button class="play" type="button" tabindex="-1" data-play aria-label={`在墙上试玩《${item.title}》`}>悬停试玩</button>}
+  </div>
+  <div class="meta">
+    <h3 class="title"><a class="card-link" href={href}>{item.title}</a></h3>
+    <span class="no">No.{item.no} · {pad(item.date.m)}.{pad(item.date.d)}</span>
+    <span class="kind" aria-hidden="true"><span class="sq"></span>{item.typeLabel}</span>
+    {item.description && <p class="desc">{item.description}</p>}
+    <p class="sign" title="模型名 · 工具 · 贡献人"><b>{model}</b> · {tool} · <span class:list={{ anon: anonymous }}>{contributor}</span></p>
+  </div>
+</article>

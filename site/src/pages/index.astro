@@ -1,145 +1,64 @@
 ---
+// 展墙：打开就是作品。没有头图，顶栏两行工具条下直接是按月分组的作品墙。
 import Base from '../layouts/Base.astro';
-import ArtifactCard from '../components/ArtifactCard.astro';
-import { getArtifacts, groupByMonth, getStats, TYPES } from '../lib/archive.js';
-import { cnMonth } from '../lib/calendar.js';
+import WallToolbar from '../components/WallToolbar.astro';
+import WorkCard from '../components/WorkCard.astro';
+import MonthHeader from '../components/MonthHeader.astro';
+import Minimap from '../components/Minimap.astro';
+import { getArtifacts, groupByMonth } from '../lib/archive.js';
 import { url } from '../lib/url.js';
+import '../styles/wall.css';
 
 const items = getArtifacts();
 const groups = groupByMonth(items);
-const stats = getStats(items);
-const presentTypes = Object.keys(TYPES).filter((t) => stats.typeCount[t]);
-
-const modelCount = new Map();
-for (const it of items) modelCount.set(it.author.model, (modelCount.get(it.author.model) || 0) + 1);
-const models = [...modelCount.entries()].sort((a, b) => b[1] - a[1]);
 ---
-<Base nav="home">
-  <!-- 左侧功能栏：搜索 / 时间轴 / 类型 / 模型 -->
-  <Fragment slot="side">
-    <div class="side-section keep" style="margin-top:14px">
-      <div class="side-search">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
-        <input type="search" placeholder="搜标题、模型、标签…" aria-label="搜索作品" data-search-input />
-      </div>
-    </div>
+<Base nav="wall" section="展墙">
+  <WallToolbar slot="tools" items={items} />
 
-    {groups.length > 0 && (
-      <div class="side-section">
-        <div class="side-label"><span>时间轴</span></div>
-        <div class="side-list">
-          {groups.map((g) => (
-            <button type="button" class="side-item" data-spy-link={g.key}>
-              <span>{g.y} 年 {g.m} 月</span>
-              <span class="count">{g.items.length}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {presentTypes.length > 1 && (
-      <div class="side-section">
-        <div class="side-label"><span>类型</span></div>
-        <div class="side-list">
-          <button type="button" class="side-item" data-filter-type="all" aria-pressed="true">
-            <span>全部类型</span><span class="count">{stats.total}</span>
-          </button>
-          {presentTypes.map((t) => (
-            <button type="button" class="side-item" data-filter-type={t} aria-pressed="false">
-              <span class="dot" data-type={t} style={`background: var(--tc)`}></span>
-              <span>{TYPES[t].label}</span><span class="count">{stats.typeCount[t]}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {models.length > 1 && (
-      <div class="side-section">
-        <div class="side-label"><span>模型</span></div>
-        <div class="side-list">
-          <button type="button" class="side-item" data-filter-model="all" aria-pressed="true">
-            <span>全部模型</span><span class="count">{stats.total}</span>
-          </button>
-          {models.map(([m, c]) => (
-            <button type="button" class="side-item" data-filter-model={m} aria-pressed="false">
-              <span class="model-name">{m}</span><span class="count">{c}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    )}
-  </Fragment>
-
-  <!-- 主显示区 -->
-  <div class="topbar">
-    <h1>全部作品</h1>
-    <span class="count-label" data-count-label>{stats.total} 件作品</span>
-    <span class="topbar-spacer"></span>
-    <button type="button" class="btn btn--ghost btn--sm" data-sort-toggle>
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v13m0 0-3.5-3.5M7 17l3.5-3.5M17 20V7m0 0-3.5 3.5M17 7l3.5 3.5"/></svg>
-      <span data-sort-label>最新在前</span>
-    </button>
-  </div>
-
-  <div class="main-inner">
+  <div class="wall-wrap">
+    <h1 class="sr-only">AiSpark 作品展墙</h1>
     {items.length === 0 ? (
-      <div class="empty">
-        <p class="empty-title">展馆还空着</p>
-        <p class="muted">第一件作品，也许就是你的。</p>
-        <a class="btn" href={url('/about/')}>去投稿</a>
+      <div class="wall-none">
+        <p class="wall-none-title">展墙还空着</p>
+        <p>第一件作品，也许就是你的。</p>
+        <a class="btn-solid" href={url('/about/')}>看看怎么投稿</a>
       </div>
     ) : (
-      <div data-groups>
+      <div class="wall" data-wall>
         {groups.map((g) => (
-          <section class="month-group" data-month-group data-month={g.key} data-spy-target={g.key} aria-label={`${g.y} 年 ${g.m} 月`}>
-            <header class="month-head">
-              <h2>{g.y} 年 {cnMonth(g.m)}</h2>
-              <span class="mono muted">{g.items.length} 件</span>
-              <span class="month-line" aria-hidden="true"></span>
-            </header>
-            <div class="grid" data-group-grid>
-              {g.items.map((it) => <ArtifactCard item={it} />)}
-            </div>
-          </section>
+          <Fragment>
+            <MonthHeader group={g} />
+            {g.items.map((it) => <WorkCard item={it} />)}
+          </Fragment>
         ))}
+        <p class="wall-empty" data-empty hidden>
+          没有符合条件的作品。<button type="button" data-reset>清除全部筛选</button>
+        </p>
       </div>
     )}
-    <p class="filter-empty muted" data-empty-filter hidden>没有符合条件的作品，换个筛选试试。</p>
   </div>
+
+  <script is:inline>
+    // 从单间返回时，让作品画面收回到它在墙上的缩略图。
+    // 必须在首帧渲染前注册，所以内联在墙的标记之后，而不放进延后执行的模块脚本。
+    addEventListener('pagereveal', function (e) {
+      var from = e.viewTransition && window.navigation && navigation.activation && navigation.activation.from;
+      if (!from || !from.url) return;
+      var m = new URL(from.url).pathname.match(/\/artifact\/([^/]+)\/?$/);
+      var card = m && document.querySelector('[data-card][data-id="' + CSS.escape(decodeURIComponent(m[1])) + '"]');
+      var thumb = card && !card.hidden && card.querySelector('.thumb');
+      if (!thumb) return;
+      thumb.style.viewTransitionName = 'stage';
+      e.viewTransition.finished.finally(function () { thumb.style.viewTransitionName = ''; });
+    });
+  </script>
+
+  <Minimap />
+  <p class="hint" data-hint hidden aria-hidden="true">
+    <span><kbd>←↑→↓</kbd>浏览</span><span><kbd>空格</kbd>试玩</span><span><kbd>回车</kbd>打开</span><span><kbd>/</kbd>搜索</span><span><kbd>R</kbd>随便看看</span>
+  </p>
 </Base>
 
-<style>
-  .model-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  .month-group { scroll-margin-top: calc(var(--topbar-h) + 8px); margin-bottom: 34px; }
-  .month-group.is-hidden { display: none; }
-  .month-head {
-    position: sticky;
-    top: var(--topbar-h);
-    z-index: 20;
-    display: flex; align-items: baseline; gap: 12px;
-    padding: 10px 0 12px;
-    background: color-mix(in srgb, var(--paper) 88%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-  .month-head h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: 0.04em; white-space: nowrap; }
-  .month-head .mono { font-size: 11.5px; }
-  .month-line { flex: 1; height: 1px; background: var(--line); align-self: center; }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
-    gap: 14px;
-  }
-  @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
-
-  .empty { text-align: center; padding: 90px 0; display: grid; justify-items: center; gap: 8px; }
-  .empty p { margin: 0; }
-  .empty-title { font-size: 22px; font-weight: 650; }
-  .empty .btn { margin-top: 18px; }
-
-  .filter-empty { text-align: center; padding: 48px 0; font-size: 14px; }
-</style>
+<script>
+  import '../scripts/wall.js';
+</script>

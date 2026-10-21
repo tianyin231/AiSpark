@@ -1,0 +1,32 @@
+---
+// 月份标题：横跨整行，旁边是 GitHub 式的每日方块，颜色越深当天入馆越多，点一下只看那一天。
+const { group } = Astro.props;
+const { key, y, m, items } = group;
+const days = new Date(y, m, 0).getDate();
+const perDay: Record<number, number> = {};
+for (const it of items) perDay[it.date.d] = (perDay[it.date.d] || 0) + 1;
+const level = (c: number) => (c === 0 ? 0 : c === 1 ? 1 : c <= 3 ? 2 : 3);
+const pad = (n: number) => String(n).padStart(2, '0');
+---
+<div class="month" data-month={key}>
+  <h2 class="month-title">{y} 年 {m} 月</h2>
+  <span class="month-n" data-month-count>{items.length} 件</span>
+  <span class="days" role="group" aria-label={`${y} 年 ${m} 月每日入馆`}>
+    {Array.from({ length: days }, (_, i) => {
+      const d = i + 1;
+      const c = perDay[d] || 0;
+      return (
+        <button
+          type="button"
+          data-day={`${key}-${pad(d)}`}
+          data-c={level(c)}
+          aria-pressed="false"
+          disabled={c === 0}
+          title={`${m} 月 ${d} 日 · ${c} 件`}
+          aria-label={`${m} 月 ${d} 日，${c} 件`}
+        ></button>
+      );
+    })}
+  </span>
+  <span class="month-line" aria-hidden="true"></span>
+</div>

@@ -45,6 +45,14 @@ jobs:
           git commit -m "chore(bot): 更新 timeline.jsonl"
           git pull --rebase origin main && git push origin HEAD:main || echo "::warning::索引回写失败，将在下次构建时重试"
 
+      # 前端作品的封面截图按作品内容哈希缓存（site/public/covers/manifest.json），没变的作品不重截
+      - name: 恢复作品封面缓存
+        uses: actions/cache@v6.1.0
+        with:
+          path: site/public/covers
+          key: covers-${{ hashFiles('artifacts/**') }}
+          restore-keys: covers-
+
       - name: 构建展示站
         working-directory: site
         env:

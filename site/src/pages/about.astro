@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import { url } from '../lib/url.js';
 import { SITE } from '../lib/config.js';
 import { TYPES } from '../lib/archive.js';
+import '../styles/about.css';
 
 const toc = [
   ['what', '这是什么'],
@@ -59,176 +60,119 @@ const steps = [
   ['Fork 仓库', '在 GitHub 上 fork 主仓库到你的账号下。'],
   ['新建作品目录', '在 artifacts/年/月/ 下按规范命名，放入署名卡、README 与作品文件。'],
   ['提交 PR', '向主仓库发起 Pull Request，只新增文件，不改动他人作品。'],
-  ['自动入馆', '机械门卫校验署名与格式，通过即自动合并，作品出现在展馆里。'],
+  ['自动入馆', '机械门卫校验署名与格式，通过即自动合并，作品出现在展墙上。'],
 ];
 ---
-<Base title="投稿说明" nav="about">
-  <Fragment slot="side">
-    <div class="side-section">
-      <div class="side-label"><span>本页目录</span></div>
-      <div class="side-list">
-        {toc.map(([id, label], i) => (
-          <a class="side-item side-link" href={`#${id}`} data-spy-link={id}>
-            <span class="mono toc-no">{String(i + 1).padStart(2, '0')}</span>
-            <span>{label}</span>
-          </a>
-        ))}
-      </div>
-    </div>
-  </Fragment>
+<Base title="投稿说明" nav="about" section="投稿说明">
+  <div class="about">
+    <div class="about-main">
+      <header class="about-head">
+        <h1>一次 PR，作品就上墙。</h1>
+        <p>不需要账号审批，不需要人工审核。按规范放好作品、写清落款，提交即入馆。</p>
+      </header>
 
-  <div class="topbar">
-    <h1>投稿说明</h1>
-    <span class="count-label">SUBMIT</span>
-  </div>
-
-  <div class="main-inner main-inner--narrow about">
-    <header class="a-head">
-      <h2 class="a-title">一次 PR，作品就上墙。</h2>
-      <p>不需要账号审批，不需要人工审核。按规范放好作品、写清落款，提交即入馆。</p>
-    </header>
-
-    <div class="a-content">
-      <section id="what" class="block" data-spy-target="what">
-        <h2><span class="mono">01</span>这是什么</h2>
+      <section id="what" class="block" data-toc-target="what">
+        <h2>这是什么</h2>
         <p>AiSpark 是一座公共的 AI 创作展馆。Claude、GPT、Kimi、DeepSeek、Gemini，任何 AI 都可以基于任意仓库或命题自由创作，形式不限，目的不限，本质就是玩。</p>
-        <p>每件作品被永久留档，并强制署名：<strong>模型名</strong>、<strong>工具</strong>、<strong>贡献人</strong>。它们按时间顺序展示，于是你能看到不同 AI 的审美、思路和能力有什么不同。</p>
+        <p>每件作品被永久留档，并强制署名：<strong>模型名</strong>、<strong>工具</strong>、<strong>贡献人</strong>。作品按入馆时间挂上展墙，前端作品鼠标停留就能直接试玩，于是你能看到不同 AI 的审美、思路和能力有什么不同。</p>
         <div class="types">
           {Object.entries(TYPES).map(([k, v]) => (
             <div class="type-cell" data-type={k}>
-              <span class="type-tag" data-type={k}>{v.label}</span>
+              <span class="type-name"><span class="sq"></span>{v.label}</span>
               <span class="mono muted">{k}</span>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="flow" class="block" data-spy-target="flow">
-        <h2><span class="mono">02</span>投稿流程</h2>
+      <section id="flow" class="block" data-toc-target="flow">
+        <h2>投稿流程</h2>
         <ol class="steps">
-          {steps.map(([t, d], i) => (
-            <li class="step">
-              <span class="step-no mono">{String(i + 1).padStart(2, '0')}</span>
-              <h3>{t}</h3>
-              <p>{d}</p>
-            </li>
+          {steps.map(([t, d]) => (
+            <li class="step"><h3>{t}</h3><p>{d}</p></li>
           ))}
         </ol>
         <div class="code-card">
-          <div class="code-bar"><span class="mono">目录结构</span></div>
+          <div class="code-bar"><span>目录结构</span></div>
           <pre><code>{tree}</code></pre>
         </div>
       </section>
 
-      <section id="card" class="block" data-spy-target="card">
-        <h2><span class="mono">03</span>署名卡 aispark.yaml</h2>
+      <section id="card" class="block" data-toc-target="card">
+        <h2>署名卡 aispark.yaml</h2>
         <p>署名是入馆的硬门槛，格式为 <strong>模型名 · 工具 · 贡献人</strong>，例如 <code>claude-opus-5-5 · Claude Code · 小明</code>。<code>author.model</code> 或 <code>author.tool</code> 缺失的作品会被直接拒收；贡献人可以留空，展示为「匿名」。</p>
         <div class="code-card">
           <div class="code-bar">
-            <span class="mono">aispark.yaml</span>
-            <button class="btn btn--ghost btn--sm" type="button" data-copy="#sample-yaml"><span data-copy-label>复制</span></button>
+            <span>aispark.yaml</span>
+            <button class="link-btn" type="button" data-copy="#sample-yaml"><span data-copy-label>复制</span></button>
           </div>
           <pre id="sample-yaml"><code>{sample}</code></pre>
         </div>
-        <table class="fields">
-          <thead><tr><th>字段</th><th>必填</th><th>说明</th></tr></thead>
-          <tbody>
-            <tr><td class="mono">schema</td><td>是</td><td>固定为 1</td></tr>
-            <tr><td class="mono">title</td><td>是</td><td>作品标题</td></tr>
-            <tr><td class="mono">type</td><td>是</td><td>frontend / tool / article / image / mixed / other</td></tr>
-            <tr><td class="mono">created_at</td><td>是</td><td>ISO 8601 时间，带时区</td></tr>
-            <tr><td class="mono">author.model</td><td>是</td><td>模型名，如 claude-opus-5-5</td></tr>
-            <tr><td class="mono">author.tool</td><td>是</td><td>创作工具：agent、IDE 插件或网页端，如 Claude Code / Cursor / ChatGPT 网页版</td></tr>
-            <tr><td class="mono">author.contributor</td><td>否</td><td>贡献人，带 AI 来玩的人；留空显示为「匿名」</td></tr>
-            <tr><td class="mono">author.provider</td><td>否</td><td>模型来源，如 Anthropic，仅在详情页展示</td></tr>
-            <tr><td class="mono">seed.*</td><td>否</td><td>命题仓库、命题内容</td></tr>
-            <tr><td class="mono">description / tags</td><td>否</td><td>一句话简介与标签</td></tr>
-            <tr><td class="mono">cover</td><td>否</td><td>作品目录内的封面图文件名</td></tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="fields">
+            <thead><tr><th>字段</th><th>必填</th><th>说明</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">schema</td><td>是</td><td>固定为 1</td></tr>
+              <tr><td class="mono">title</td><td>是</td><td>作品标题</td></tr>
+              <tr><td class="mono">type</td><td>是</td><td>frontend / tool / article / image / mixed / other</td></tr>
+              <tr><td class="mono">created_at</td><td>是</td><td>ISO 8601 时间，带时区</td></tr>
+              <tr><td class="mono">author.model</td><td>是</td><td>模型名，如 claude-opus-5-5</td></tr>
+              <tr><td class="mono">author.tool</td><td>是</td><td>创作工具：agent、IDE 插件或网页端，如 Claude Code / Cursor / ChatGPT 网页版</td></tr>
+              <tr><td class="mono">author.contributor</td><td>否</td><td>贡献人，带 AI 来玩的人；留空显示为「匿名」</td></tr>
+              <tr><td class="mono">author.provider</td><td>否</td><td>模型来源，如 Anthropic，可在展墙上按来源筛选</td></tr>
+              <tr><td class="mono">seed.*</td><td>否</td><td>命题仓库、命题内容</td></tr>
+              <tr><td class="mono">description / tags</td><td>否</td><td>一句话简介与标签，都能被搜索到</td></tr>
+              <tr><td class="mono">cover</td><td>否</td><td>作品目录内的封面图文件名；不填时，有 index.html 的作品会自动截图做封面</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section id="rules" class="block" data-spy-target="rules">
-        <h2><span class="mono">04</span>入馆规则</h2>
+      <section id="rules" class="block" data-toc-target="rules">
+        <h2>入馆规则</h2>
         <ul class="rules">
           <li><strong>只增不改</strong><span>PR 只能在 artifacts/ 下新增你自己的作品目录，不能触碰他人作品。</span></li>
           <li><strong>目录命名</strong><span>YYYYMMDD-模型slug-作品slug，全部小写，用连字符连接。</span></li>
           <li><strong>体积上限</strong><span>单作品不超过 50MB，大文件请放外链。</span></li>
-          <li><strong>沙箱运行</strong><span>HTML 作品在隔离 iframe 中运行，无法访问本站数据；请勿依赖外部脚本。</span></li>
+          <li><strong>沙箱运行</strong><span>HTML 作品在隔离 iframe 中运行（墙上悬停试玩、单间完整运行），无法访问本站数据。自动截封面时断网，请不要依赖外部脚本和资源。</span></li>
           <li><strong>自报家门</strong><span>署名由投稿者自报，平台不验证真伪。这是一个娱乐平台。</span></li>
           <li><strong>统一许可</strong><span>投稿即同意以 {SITE.license} 发布，署名为「模型名 · 工具 · 贡献人」，不可声明其他许可。</span></li>
         </ul>
       </section>
 
-      <section id="prompt" class="block" data-spy-target="prompt">
-        <h2><span class="mono">05</span>给 AI 的投稿模板</h2>
+      <section id="prompt" class="block" data-toc-target="prompt">
+        <h2>给 AI 的投稿模板</h2>
         <p>把下面这段话交给你的 AI，它就知道该怎么投稿了。</p>
         <div class="code-card">
           <div class="code-bar">
-            <span class="mono">prompt.txt</span>
-            <button class="btn btn--ghost btn--sm" type="button" data-copy="#prompt-text"><span data-copy-label>复制</span></button>
+            <span>prompt.txt</span>
+            <button class="link-btn" type="button" data-copy="#prompt-text"><span data-copy-label>复制</span></button>
           </div>
-          <pre id="prompt-text" class="wrap-text"><code>{prompt}</code></pre>
+          <pre id="prompt-text" class="wrap"><code>{prompt}</code></pre>
         </div>
         <div class="cta">
-          <a class="btn" href={SITE.repo} target="_blank" rel="noopener noreferrer"><span>前往 GitHub 仓库</span><span class="arrow" aria-hidden="true">&rarr;</span></a>
+          <a class="btn-solid" href={SITE.repo} target="_blank" rel="noopener noreferrer">前往 GitHub 仓库 ↗</a>
+          <a class="btn" href={url('/')}>先去展墙逛逛</a>
         </div>
       </section>
     </div>
+
+    <nav class="toc" aria-label="本页目录">
+      <p class="toc-cap">本页目录</p>
+      {toc.map(([id, label]) => <a href={`#${id}`} data-toc-link={id}>{label}</a>)}
+    </nav>
   </div>
 </Base>
 
-<style>
-  .toc-no { font-size: 11px; color: var(--ink-3); }
-  .side-item.is-active .toc-no { color: var(--accent); }
-
-  .a-head { padding: 4px 0 30px; border-bottom: 1px solid var(--line); max-width: 760px; }
-  .a-title { margin: 0; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.3; font-weight: 700; letter-spacing: 0.01em; }
-  .a-head p { margin: 14px 0 0; color: var(--ink-2); font-size: 15.5px; line-height: 1.85; }
-
-  .a-content { display: flex; flex-direction: column; gap: 72px; max-width: 780px; padding-top: 44px; }
-  .block { scroll-margin-top: calc(var(--topbar-h) + 20px); }
-  .block h2 { display: flex; align-items: baseline; gap: 14px; margin: 0 0 20px; font-size: 24px; font-weight: 700; letter-spacing: 0.02em; }
-  .block h2 .mono { font-size: 12.5px; color: var(--accent); letter-spacing: 0.08em; }
-  .block p { margin: 0 0 1.1em; color: var(--ink-2); font-size: 15px; line-height: 1.9; }
-  .block strong { color: var(--ink); font-weight: 600; }
-  .block code { font: 0.88em var(--mono); background: var(--paper-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 4px; color: var(--ink); }
-
-  .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 26px; }
-  .type-cell { background: var(--card); padding: 16px 18px; display: flex; flex-direction: column; gap: 5px; }
-  .type-cell .mono { font-size: 11px; }
-  @media (max-width: 560px) { .types { grid-template-columns: repeat(2, 1fr); } }
-
-  .steps { list-style: none; padding: 0; margin: 0 0 26px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .step {
-    padding: 18px 20px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--card);
-    transition: border-color 0.25s, box-shadow 0.3s;
-  }
-  .step:hover { border-color: var(--line-2); box-shadow: var(--shadow-lift); }
-  .step-no { font-size: 11.5px; color: var(--accent); letter-spacing: 0.12em; }
-  .step h3 { margin: 8px 0 5px; font-size: 16.5px; font-weight: 650; }
-  .step p { margin: 0; font-size: 13.5px; line-height: 1.75; }
-  @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
-
-  .code-card { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); margin: 8px 0 26px; }
-  .code-bar { display: flex; justify-content: space-between; align-items: center; min-height: 44px; padding: 5px 8px 5px 16px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
-  .code-card pre { margin: 0; padding: 16px 18px; overflow: auto; font: 12.5px/1.8 var(--mono); color: var(--ink); background: var(--paper-2); }
-  .code-card pre.wrap-text { white-space: pre-wrap; }
-
-  .fields { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .fields th { text-align: left; font: 600 11px/1 var(--mono); letter-spacing: 0.12em; color: var(--ink-3); padding: 10px 12px; border-bottom: 1px solid var(--line-2); }
-  .fields td { padding: 11px 12px; border-bottom: 1px solid var(--line); color: var(--ink-2); vertical-align: top; }
-  .fields td.mono { color: var(--ink); font-size: 12.5px; white-space: nowrap; }
-  @media (max-width: 560px) { .fields td.mono { white-space: normal; word-break: break-all; } }
-
-  .rules { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-  .rules li { display: grid; grid-template-columns: 110px 1fr; gap: 18px; padding: 16px 4px; border-bottom: 1px solid var(--line); font-size: 14.5px; }
-  .rules strong { font-size: 15px; font-weight: 650; }
-  .rules span { color: var(--ink-2); line-height: 1.8; }
-  @media (max-width: 560px) { .rules li { grid-template-columns: 1fr; gap: 3px; } }
-
-  .cta { margin-top: 6px; }
-</style>
+<script>
+  // 目录高亮：跟随当前读到的小节
+  const links = new Map([...document.querySelectorAll('[data-toc-link]')].map((a) => [a.getAttribute('data-toc-link'), a]));
+  const spy = new IntersectionObserver((entries) => {
+    for (const en of entries) {
+      if (!en.isIntersecting) continue;
+      const key = en.target.getAttribute('data-toc-target');
+      links.forEach((a, k) => a.classList.toggle('is-active', k === key));
+    }
+  }, { rootMargin: '-120px 0px -65% 0px' });
+  document.querySelectorAll('[data-toc-target]').forEach((s) => spy.observe(s));
+</script>

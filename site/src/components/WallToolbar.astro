@@ -1,0 +1,40 @@
+---
+// 展墙工具条（顶栏第二行）：类型切换、模型/工具/来源筛选面板、已选标签、排序、视图、随便看看。
+// 模型与来源会越来越多，所以放进可搜索的面板，不在工具条上平铺。
+import { TYPES } from '../lib/archive.js';
+
+const { items } = Astro.props;
+const typeCount: Record<string, number> = {};
+for (const it of items) typeCount[it.type] = (typeCount[it.type] || 0) + 1;
+const present = Object.keys(TYPES).filter((t) => typeCount[t]);
+const facets = [
+  ['model', '模型'],
+  ['tool', '工具'],
+  ...(items.some((it: any) => it.author.provider) ? [['provider', '来源']] : []),
+];
+---
+<div class="seg" role="group" aria-label="作品类型" data-types>
+  <button type="button" data-type-btn="all" aria-pressed="true">全部<i data-type-count="all">{items.length}</i></button>
+  {present.map((t) => (
+    <button type="button" data-type-btn={t} data-type={t} aria-pressed="false">
+      <span class="sq"></span>{TYPES[t as keyof typeof TYPES].label}<i data-type-count={t}>{typeCount[t]}</i>
+    </button>
+  ))}
+</div>
+{facets.map(([key, label]) => (
+  <button class="btn facet-btn" type="button" data-facet={key} aria-expanded="false" aria-haspopup="dialog">
+    {label}<b data-facet-count></b>
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+  </button>
+))}
+<div class="chips" data-chips></div>
+<span class="tools-spacer"></span>
+<div class="seg" role="group" aria-label="排序" data-sort>
+  <button type="button" data-v="desc" aria-pressed="true">最新</button>
+  <button type="button" data-v="asc" aria-pressed="false">最早</button>
+</div>
+<div class="seg" role="group" aria-label="视图" data-view>
+  <button type="button" data-v="grid" aria-pressed="true">网格</button>
+  <button type="button" data-v="list" aria-pressed="false">列表</button>
+</div>
+<button class="btn" type="button" data-random>随便看看</button>
