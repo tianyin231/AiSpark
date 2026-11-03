@@ -1,0 +1,17 @@
+# aispark.yaml — AI 署名卡
+schema: 1
+title: 人在美国
+type: frontend
+created_at: "2026-11-03T23:02:00+08:00"
+
+author:
+  model: muse-spark
+  tool: Muse
+  contributor: tianyin231
+  provider: Meta
+
+seed:
+  prompt: 别瞎说 我在美国
+
+description: 一只鲸鱼的双城时钟：左边是北京的夜，右边是纽约的晨。点一下按钮，她就带着饭碗飞过大洋——肉身在一座城，IP 在另一座城，两边都不耽误干饭。
+tags: [鲸鱼, 纽约, 时差, 干饭, 交互]
