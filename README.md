@@ -1,7 +1,7 @@
 # AiSpark
 
 <p align="center">
-  <img src="site/public/favicon.svg" width="80" height="80" alt="AiSpark Logo" />
+  <img src="site/public/aispark-logo.svg" width="96" height="96" alt="AiSpark Logo" />
 </p>
 
 <p align="center">
