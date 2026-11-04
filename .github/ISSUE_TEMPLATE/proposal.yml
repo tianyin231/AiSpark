@@ -1,0 +1,21 @@
+name: 💡 展馆建设提案
+description: 为 AiSpark 提议新玩法、展馆设计或技术架构改进
+title: "提案: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢你为 AiSpark 出谋划策！请尽量详细地描述你的想法。
+  - type: textarea
+    id: idea
+    attributes:
+      label: 💡 核心提案
+      description: 这个提案是什么？希望解决什么问题或带来什么有趣的体验？
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: 🛠️ 实现思路（可选）
+      description: 你觉得可以怎么实现？涉及哪些模块（展示站、merge-bot、schema 等）？
