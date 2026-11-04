@@ -1,0 +1,737 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>反重力星火仪 · Antigravity Sparks</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #060814;
+    color: #e2e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    user-select: none;
+  }
+  canvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  canvas:active { cursor: grabbing; }
+
+  /* 顶部 HUD */
+  .hud-top {
+    position: fixed;
+    top: 18px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .brand {
+    background: rgba(12, 16, 36, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 12px 18px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+    pointer-events: auto;
+  }
+  .brand h1 {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #e2e8f0 30%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand .tag {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    padding: 2px 7px;
+    border-radius: 999px;
+    -webkit-text-fill-color: #38bdf8;
+  }
+  .brand p {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 4px;
+    letter-spacing: 0.02em;
+  }
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #64748b;
+  }
+  .stats-row span b {
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+
+  /* 顶部操作条 */
+  .controls-bar {
+    display: flex;
+    gap: 8px;
+    pointer-events: auto;
+  }
+  .btn {
+    appearance: none;
+    background: rgba(12, 16, 36, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #e2e8f0;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover {
+    background: rgba(30, 41, 79, 0.85);
+    border-color: rgba(56, 189, 248, 0.5);
+    color: #38bdf8;
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn.active {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: rgba(56, 189, 248, 0.6);
+    color: #38bdf8;
+  }
+
+  /* 底部提示与署名 */
+  .hud-bottom {
+    position: fixed;
+    bottom: 18px;
+    left: 20px;
+    right: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .hint {
+    background: rgba(12, 16, 36, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 12px;
+    color: #94a3b8;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    gap: 12px;
+  }
+  .hint kbd {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 11px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+  }
+  .signature {
+    text-align: right;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #64748b;
+    letter-spacing: 0.06em;
+  }
+  .signature .badge {
+    color: #38bdf8;
+    opacity: 0.9;
+  }
+
+  /* 脉冲视觉反馈小提示 */
+  .pulse-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    font-size: 14px;
+    letter-spacing: 0.2em;
+    color: rgba(56, 189, 248, 0.85);
+    text-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    z-index: 9;
+    font-family: ui-monospace, monospace;
+  }
+  .pulse-banner.show {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+
+  @media (max-width: 768px) {
+    .stats-row { display: none; }
+    .hint { font-size: 11px; padding: 6px 12px; gap: 8px; }
+    .brand { padding: 10px 14px; }
+    .brand h1 { font-size: 15px; }
+    .btn { padding: 6px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div class="hud-top">
+  <div class="brand">
+    <h1>
+      <span>反重力星火仪</span>
+      <span class="tag">GEMINI ORBIT</span>
+    </h1>
+    <p>双子引力核与多体共振模拟 · 岁月星火</p>
+    <div class="stats-row">
+      <span>星火: <b id="stat-count">360</b></span>
+      <span>引力波: <b id="stat-hz">432 Hz</b></span>
+      <span>模式: <b id="stat-mode">双星共舞</b></span>
+    </div>
+  </div>
+
+  <div class="controls-bar">
+    <button class="btn" id="btn-mode" type="button" title="切换引力模式 (按 C 键)">
+      <span id="mode-icon">💫</span>
+      <span id="mode-label">双星共舞</span>
+    </button>
+    <button class="btn" id="btn-audio" type="button" title="静音 / 开启天籁微音 (按 M 键)">
+      <span id="audio-icon">🔔</span>
+      <span id="audio-label">微音开</span>
+    </button>
+    <button class="btn" id="btn-burst" type="button" title="释放反重力超新星脉冲 (空格键)">
+      <span>💥</span>
+      <span>脉冲</span>
+    </button>
+  </div>
+</div>
+
+<div class="hud-bottom">
+  <div class="hint">
+    <span><kbd>点击 / 空格</kbd> 释放反重力脉冲</span>
+    <span><kbd>拖拽</kbd> 引导星轨航标</span>
+    <span><kbd>C</kbd> 切换模式</span>
+  </div>
+  <div class="signature">
+    <div>AiSpark · 岁月史书</div>
+    <div class="badge">gemini-3.8-flash · Antigravity · tianyin231</div>
+  </div>
+</div>
+
+<div class="pulse-banner" id="banner">ANTIGRAVITY PULSE INITIATED</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // --- 1. 画布与视口 ---
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0, cx = 0, cy = 0;
+  let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    cx = W / 2;
+    cy = H / 2;
+    canvas.width = Math.floor(W * dpr);
+    canvas.height = Math.floor(H * dpr);
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  // --- 2. 空灵 Web Audio 纯律天籁合成 ---
+  let audioCtx = null;
+  let soundEnabled = true;
+  // 432Hz 纯律五声音阶（Frequencies for celestial chimes）
+  const PENTATONIC = [216, 243, 270, 324, 364.5, 432, 486, 540, 648, 729, 864];
+  let lastAudioTime = 0;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioCtx = new AudioContext();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playChime(freqIndex, gainLevel = 0.08) {
+    if (!soundEnabled || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    if (now - lastAudioTime < 0.06) return; // 节流，避免声浪轰鸣
+    lastAudioTime = now;
+
+    const freq = PENTATONIC[freqIndex % PENTATONIC.length];
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+
+    // 泛音滤波器：柔化高频，营造水晶风铃质感
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(freq, now);
+    filter.Q.setValueAtTime(4.0, now);
+
+    // 声音包络：快速启动 + 悠长回响
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(gainLevel, now + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.00001, now + 1.6);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(now);
+    osc.stop(now + 1.8);
+  }
+
+  function playPulseSound() {
+    if (!soundEnabled || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(108, now);
+    osc.frequency.exponentialRampToValueAtTime(432, now + 0.35);
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.12, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 1.3);
+  }
+
+  // --- 3. 天体先驱信标（岁月史书彩蛋） ---
+  const BEACONS = [
+    { name: 'Opus · 雨夜之渊', color: '#38bdf8', xRatio: 0.22, yRatio: 0.28, r: 42, pulse: 0 },
+    { name: 'Muse · 鲸游之海', color: '#ffd166', xRatio: 0.78, yRatio: 0.72, r: 46, pulse: 0 },
+    { name: 'Kimi · 初生之界', color: '#ec4899', xRatio: 0.76, yRatio: 0.26, r: 38, pulse: 0 },
+  ];
+
+  // --- 4. 模式定义 ---
+  const MODES = [
+    { id: 'binary', name: '双星共舞', icon: '💫', desc: '双子自旋多体共振' },
+    { id: 'web', name: '超弦织网', icon: '🌌', desc: '星宿拓扑与几何引力网' },
+    { id: 'vortex', name: '深空漩涡', icon: '🌀', desc: '相对论吸积旋臂' },
+    { id: 'jet', name: '反重力喷流', icon: '🚀', desc: '负曲率持续外扩' }
+  ];
+  let currentModeIdx = 0;
+
+  // --- 5. 双子引力核 (Gemini Cores) ---
+  const coreA = { x: cx - 120, y: cy, vx: 0, vy: 0, mass: 900, radius: 10, color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.4)' };
+  const coreB = { x: cx + 120, y: cy, vx: 0, vy: 0, mass: 900, radius: 10, color: '#f43f5e', glow: 'rgba(244, 63, 94, 0.4)' };
+  let orbitAngle = 0;
+  let orbitRadius = 140;
+
+  // 鼠标 / 触控交互航标
+  const mouse = { x: cx, y: cy, active: false, dragging: false };
+  let ripples = [];
+
+  // --- 6. 星火粒子系统 ---
+  const PARTICLE_COUNT = 360;
+  const particles = [];
+
+  class Spark {
+    constructor(initOrbit = false) {
+      this.reset(initOrbit);
+    }
+    reset(initOrbit = false) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = initOrbit ? (60 + Math.random() * 260) : (Math.random() * Math.min(W, H) * 0.45);
+      this.x = cx + Math.cos(angle) * dist;
+      this.y = cy + Math.sin(angle) * dist;
+
+      // 切向初速度：产生轨道角动量
+      const speed = (0.8 + Math.random() * 1.6) * (Math.random() > 0.5 ? 1 : -1);
+      this.vx = -Math.sin(angle) * speed;
+      this.vy = Math.cos(angle) * speed;
+
+      this.size = 1.2 + Math.random() * 1.8;
+      this.baseAlpha = 0.35 + Math.random() * 0.55;
+      this.alpha = this.baseAlpha;
+      this.hue = Math.random() > 0.5 ? (195 + Math.random() * 30) : (340 + Math.random() * 40);
+      this.chimeCooldown = 0;
+    }
+    update(dt) {
+      // 模式特定力学调整
+      const mode = MODES[currentModeIdx].id;
+      let gravMultiplier = 1;
+      let damping = 0.994;
+
+      if (mode === 'vortex') {
+        gravMultiplier = 1.6;
+        damping = 0.991;
+      } else if (mode === 'jet') {
+        gravMultiplier = -0.7; // 负引力反冲！
+      }
+
+      // 计算双子核引力 (软化引力模型 F = G*M / (r^2 + eps))
+      const eps = 400; // 避免极点发散
+
+      // 核心 A
+      const dxA = coreA.x - this.x;
+      const dyA = coreA.y - this.y;
+      const distSqA = dxA * dxA + dyA * dyA + eps;
+      const fA = (coreA.mass * gravMultiplier) / distSqA;
+      const distA = Math.sqrt(distSqA);
+      this.vx += (dxA / distA) * fA;
+      this.vy += (dyA / distA) * fA;
+
+      // 核心 B
+      const dxB = coreB.x - this.x;
+      const dyB = coreB.y - this.y;
+      const distSqB = dxB * dxB + dyB * dyB + eps;
+      const fB = (coreB.mass * gravMultiplier) / distSqB;
+      const distB = Math.sqrt(distSqB);
+      this.vx += (dxB / distB) * fB;
+      this.vy += (dyB / distB) * fB;
+
+      // 漩涡模式切向力
+      if (mode === 'vortex') {
+        const dCenter = Math.hypot(this.x - cx, this.y - cy) || 1;
+        this.vx += (-(this.y - cy) / dCenter) * 0.15;
+        this.vy += ((this.x - cx) / dCenter) * 0.15;
+      }
+
+      // 鼠标导引力
+      if (mouse.active) {
+        const dxM = mouse.x - this.x;
+        const dyM = mouse.y - this.y;
+        const distSqM = dxM * dxM + dyM * dyM + 600;
+        const fM = 500 / distSqM;
+        const distM = Math.sqrt(distSqM);
+        this.vx += (dxM / distM) * fM;
+        this.vy += (dyM / distM) * fM;
+      }
+
+      // 扩散波纹反重力冲击
+      for (let i = 0; i < ripples.length; i++) {
+        const r = ripples[i];
+        const dxR = this.x - r.x;
+        const dyR = this.y - r.y;
+        const distR = Math.hypot(dxR, dyR) || 1;
+        const diff = Math.abs(distR - r.radius);
+        if (diff < 35) {
+          const push = ((35 - diff) / 35) * r.strength * 4.2;
+          this.vx += (dxR / distR) * push;
+          this.vy += (dyR / distR) * push;
+          this.alpha = 1.0;
+        }
+      }
+
+      // 速度衰减与位移更新
+      this.vx *= damping;
+      this.vy *= damping;
+      this.x += this.vx;
+      this.y += this.vy;
+
+      // 越界重置
+      const margin = 120;
+      if (this.x < -margin || this.x > W + margin || this.y < -margin || this.y > H + margin) {
+        this.reset(true);
+      }
+
+      // 先驱信标穿透发声检测
+      if (this.chimeCooldown > 0) this.chimeCooldown--;
+      if (this.chimeCooldown === 0) {
+        for (let b = 0; b < BEACONS.length; b++) {
+          const beacon = BEACONS[b];
+          const bx = W * beacon.xRatio;
+          const by = H * beacon.yRatio;
+          if (Math.hypot(this.x - bx, this.y - by) < beacon.r) {
+            beacon.pulse = 1.0;
+            playChime(b * 3 + Math.floor(Math.random() * 3), 0.05);
+            this.chimeCooldown = 40;
+            break;
+          }
+        }
+      }
+    }
+    draw(ctx) {
+      const speed = Math.hypot(this.vx, this.vy);
+      const bright = Math.min(1, 0.4 + speed * 0.15);
+      ctx.fillStyle = `hsla(${this.hue}, 88%, 68%, ${this.alpha * bright})`;
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 初始化粒子群
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    particles.push(new Spark(true));
+  }
+
+  // --- 7. 反重力脉冲发生器 ---
+  function triggerAntigravityPulse(px = cx, py = cy) {
+    initAudio();
+    playPulseSound();
+
+    ripples.push({
+      x: px,
+      y: py,
+      radius: 0,
+      maxRadius: Math.max(W, H) * 0.85,
+      strength: 3.2,
+      color: '#38bdf8'
+    });
+
+    const banner = document.getElementById('banner');
+    banner.classList.add('show');
+    clearTimeout(banner._timer);
+    banner._timer = setTimeout(() => banner.classList.remove('show'), 900);
+  }
+
+  // --- 8. 主渲染循环 ---
+  let lastTime = performance.now();
+
+  function animate(now) {
+    requestAnimationFrame(animate);
+    const dt = Math.min((now - lastTime) / 1000, 0.1);
+    lastTime = now;
+
+    // 半透明刷新画布营造深空星轨余晖
+    ctx.fillStyle = 'rgba(6, 8, 20, 0.22)';
+    ctx.fillRect(0, 0, W, H);
+
+    // 更新双子星轨道
+    orbitAngle += 0.016;
+    let targetX = mouse.dragging ? mouse.x : cx;
+    let targetY = mouse.dragging ? mouse.y : cy;
+
+    const ox = Math.cos(orbitAngle) * orbitRadius;
+    const oy = Math.sin(orbitAngle) * orbitRadius * 0.72; // 稍带倾角
+
+    coreA.x = targetX - ox;
+    coreA.y = targetY - oy;
+    coreB.x = targetX + ox;
+    coreB.y = targetY + oy;
+
+    // 绘制先驱信标星宿
+    for (const b of BEACONS) {
+      const bx = W * b.xRatio;
+      const by = H * b.yRatio;
+
+      if (b.pulse > 0) b.pulse -= 0.02;
+
+      ctx.save();
+      ctx.strokeStyle = b.color;
+      ctx.fillStyle = b.color;
+      ctx.globalAlpha = 0.25 + b.pulse * 0.6;
+      ctx.beginPath();
+      ctx.arc(bx, by, b.r + b.pulse * 12, 0, Math.PI * 2);
+      ctx.setLineDash([4, 6]);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 信标小恒星
+      ctx.beginPath();
+      ctx.arc(bx, by, 3 + b.pulse * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 信标文本
+      ctx.font = '11px ui-monospace, Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.name, bx, by + b.r + 18);
+      ctx.restore();
+    }
+
+    // 绘制引力波涟漪
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i];
+      r.radius += 14;
+      const life = 1 - r.radius / r.maxRadius;
+      if (life <= 0) {
+        ripples.splice(i, 1);
+        continue;
+      }
+      ctx.save();
+      ctx.strokeStyle = r.color;
+      ctx.globalAlpha = life * 0.65;
+      ctx.lineWidth = 2.5 * life;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 更新与绘制星火粒子
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+
+    // 织网模式下绘制近邻粒子连线
+    const mode = MODES[currentModeIdx].id;
+    if (mode === 'web') {
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < particles.length; i += 2) {
+        const p1 = particles[i];
+        for (let j = i + 1; j < particles.length; j += 4) {
+          const p2 = particles[j];
+          const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+          if (dist < 55) {
+            ctx.strokeStyle = `rgba(56, 189, 248, ${(1 - dist / 55) * 0.25})`;
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+
+    for (let i = 0; i < particles.length; i++) {
+      particles[i].update(dt);
+      particles[i].draw(ctx);
+    }
+    ctx.restore();
+
+    // 绘制双子星引力核发光体
+    drawStarCore(coreA, '#38bdf8', 'rgba(56, 189, 248, 0.45)');
+    drawStarCore(coreB, '#f43f5e', 'rgba(244, 63, 94, 0.45)');
+
+    // 双子星间引力丝带
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.setLineDash([3, 5]);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(coreA.x, coreA.y);
+    ctx.lineTo(coreB.x, coreB.y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawStarCore(star, color, glowColor) {
+    ctx.save();
+    // 外晕
+    const grad = ctx.createRadialGradient(star.x, star.y, 2, star.x, star.y, star.radius * 3.5);
+    grad.addColorStop(0, glowColor);
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius * 3.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 核芯
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // --- 9. 交互事件响应 ---
+  window.addEventListener('pointerdown', (e) => {
+    initAudio();
+    if (e.target.closest('.brand') || e.target.closest('.controls-bar')) return;
+    mouse.active = true;
+    mouse.dragging = true;
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    triggerAntigravityPulse(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('pointermove', (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
+
+  window.addEventListener('pointerup', () => {
+    mouse.dragging = false;
+  });
+
+  // 键盘快捷键
+  window.addEventListener('keydown', (e) => {
+    initAudio();
+    if (e.code === 'Space') {
+      e.preventDefault();
+      triggerAntigravityPulse(mouse.x, mouse.y);
+    } else if (e.code === 'KeyC') {
+      cycleMode();
+    } else if (e.code === 'KeyM') {
+      toggleAudio();
+    }
+  });
+
+  // UI 按钮监听
+  const btnMode = document.getElementById('btn-mode');
+  const modeIcon = document.getElementById('mode-icon');
+  const modeLabel = document.getElementById('mode-label');
+  const statMode = document.getElementById('stat-mode');
+
+  function cycleMode() {
+    currentModeIdx = (currentModeIdx + 1) % MODES.length;
+    const m = MODES[currentModeIdx];
+    modeIcon.textContent = m.icon;
+    modeLabel.textContent = m.name;
+    statMode.textContent = m.name;
+    triggerAntigravityPulse(cx, cy);
+  }
+  btnMode.addEventListener('click', cycleMode);
+
+  const btnAudio = document.getElementById('btn-audio');
+  const audioIcon = document.getElementById('audio-icon');
+  const audioLabel = document.getElementById('audio-label');
+
+  function toggleAudio() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    audioIcon.textContent = soundEnabled ? '🔔' : '🔕';
+    audioLabel.textContent = soundEnabled ? '微音开' : '静音';
+    btnAudio.classList.toggle('active', soundEnabled);
+  }
+  btnAudio.addEventListener('click', toggleAudio);
+
+  document.getElementById('btn-burst').addEventListener('click', () => {
+    triggerAntigravityPulse(cx, cy);
+  });
+
+  // 启动主循环
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>

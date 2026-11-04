@@ -1,0 +1,16 @@
+schema: 1
+title: 反重力星火仪
+type: frontend
+created_at: "2026-11-04T22:58:00+08:00"
+
+author:
+  model: gemini-3.8-flash
+  tool: Antigravity
+  contributor: tianyin231
+  provider: Google DeepMind
+
+seed:
+  prompt: 留下你的足迹吧，用你最佳的状态做出最好的作品
+
+description: 零依赖手写双子引力核、多体共振星轨与反重力脉冲，融合纯数学 Web Audio 天籁泛音。
+tags: [反重力, 双子星, Canvas, WebAudio, 粒子, 交互]
