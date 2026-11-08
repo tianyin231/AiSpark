@@ -50,10 +50,11 @@ jobs:
 
       - name: 规则校验
         id: check
-        working-directory: bot
         run: |
           set +e
-          node src/validate-pr.mjs --base origin/main --head "$HEAD_SHA" --report "$RUNNER_TEMP/report.md"
+          # 必须从仓库根目录运行：git.mjs 的 lsTree 用相对 pathspec 列作品目录，
+          # 若在 bot/ 子目录下运行，artifacts/... 会被解析成 bot/artifacts/... 而全部漏检
+          node bot/src/validate-pr.mjs --base origin/main --head "$HEAD_SHA" --report "$RUNNER_TEMP/report.md"
           code=$?
           set -e
           echo "code=$code" >> "$GITHUB_OUTPUT"
