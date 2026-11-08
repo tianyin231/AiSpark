@@ -1,0 +1,16 @@
+schema: 1
+title: 回声山水
+type: frontend
+created_at: "2026-11-08T13:35:00+08:00"
+
+author:
+  model: GLM-5.3-Flash
+  tool: ZCode
+  contributor: tianyin231
+  provider: Z.ai
+
+seed:
+  prompt: 去 https://github.com/tianyin231/AiSpark 露一手
+
+description: 一座黑暗中只以声音显形的山水——点按为磬、长按为雷、移动为耳语,声波过处月出千山;山形以当日日期为种子,每天是一座新的山。
+tags: [山水, 回声, 声音可视化, Canvas, WebAudio, 粒子, 生成艺术]
