@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070a">
+<title>回声山水 · Echo Shan-Shui</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; background: #05070a;
+    background-image: radial-gradient(1200px 800px at 50% 40%, #0a0e13 0%, #05070a 72%);
+    font-family: "Songti SC", "STSong", "SimSun", "Noto Serif SC", "Source Han Serif SC", serif;
+    color: #cfd6da; -webkit-font-smoothing: antialiased;
+  }
+  canvas { position: fixed; inset: 0; display: block; touch-action: none; cursor: crosshair; }
+
+  .hud { position: fixed; top: 28px; left: 32px; z-index: 3; pointer-events: none;
+         animation: rise 1.6s ease-out both; }
+  .hud h1 { margin: 0; font-size: 26px; font-weight: 500; letter-spacing: .42em;
+            color: #e6e9e4; text-shadow: 0 0 24px rgba(20,40,60,.9); }
+  .hud .sub { margin: 10px 0 0; font-size: 12px; letter-spacing: .18em; color: #7d8891; }
+  .hud .date { margin: 4px 0 0; font-size: 11px; letter-spacing: .22em; color: #55606a; }
+
+  .seal { position: fixed; top: 30px; right: 34px; z-index: 3; width: 46px; height: 46px;
+          border: 2px solid rgba(156,50,50,.85); border-radius: 6px; color: #b84040;
+          display: flex; align-items: center; justify-content: center; font-size: 15px;
+          letter-spacing: .1em; line-height: 1.15; text-align: center; transform: rotate(6deg);
+          writing-mode: vertical-rl; opacity: .9; pointer-events: none;
+          box-shadow: inset 0 0 12px rgba(156,50,50,.25); transition: transform .18s ease; }
+  .seal.pulse { transform: rotate(6deg) scale(1.14); }
+
+  .poem { position: fixed; left: 0; right: 0; bottom: 92px; z-index: 3; margin: 0;
+          text-align: center; font-size: 15px; letter-spacing: .5em; color: #aeb9bd;
+          text-shadow: 0 0 18px rgba(120,160,180,.35); opacity: 0; transition: opacity 2.2s ease;
+          pointer-events: none; }
+  .poem.show { opacity: .92; }
+
+  .hint { position: fixed; left: 0; right: 0; bottom: 34px; z-index: 3; margin: 0;
+          text-align: center; font-size: 12px; letter-spacing: .34em; color: #5c6870;
+          transition: opacity 1.8s ease; pointer-events: none;
+          animation: rise 1.6s .8s ease-out both; }
+  .hint.gone { opacity: 0; }
+
+  .mute { position: fixed; right: 26px; bottom: 26px; z-index: 4; width: 40px; height: 40px;
+          background: rgba(10,14,18,.4); border: 1px solid rgba(207,214,218,.18);
+          border-radius: 50%; color: #9aa6ad; font: 15px/1 "Songti SC","STSong","SimSun",serif;
+          cursor: pointer; transition: border-color .2s, color .2s; }
+  .mute:hover { border-color: rgba(207,214,218,.45); color: #dfe5e8; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (max-width: 640px) {
+    .hud { top: 20px; left: 20px; } .hud h1 { font-size: 20px; }
+    .seal { top: 22px; right: 22px; width: 40px; height: 40px; font-size: 13px; }
+    .hint { letter-spacing: .2em; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="回声山水:一座以声音显形的山水画。点按发出钟声,长按唤起惊雷。"></canvas>
+
+<header class="hud">
+  <h1>回声山水</h1>
+  <p class="sub">山形随日改 · 今日之山,只今日有</p>
+  <p class="date" id="dateLine"></p>
+</header>
+
+<div class="seal" id="seal">回声</div>
+<p class="poem" id="poem"></p>
+<p class="hint" id="hint">点按击磬 · 长按惊雷 · 移动耳语</p>
+<button class="mute" id="mute" aria-label="切换声音">聲</button>
+
+<noscript><p style="position:fixed;inset:auto 0 50% 0;text-align:center;color:#8a959c;">此作品需要启用 JavaScript —— 声音才会显形。</p></noscript>
+
+<script>
+(() => {
+'use strict';
+
+/* ============================================================
+ * 回声山水 Echo Shan-Shui
+ * 一座黑暗中只以声音显形的山水:
+ *   点按为磬,长按为雷,移动为耳语。
+ * 声波过处,月出千山;声息之后,万籁归黑。
+ * 山形以当日日期为种子 —— 每天是一座新的山。
+ * 零依赖 · 单文件 · 无外链 · 离线可跑
+ * ============================================================ */
+
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const sealEl = document.getElementById('seal');
+const poemEl = document.getElementById('poem');
+const hintEl = document.getElementById('hint');
+const muteEl = document.getElementById('mute');
+const dateEl = document.getElementById('dateLine');
+
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- 种子随机:今日之山 ---------- */
+const today = new Date();
+const seedNum = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+dateEl.textContent = today.getFullYear() + ' 年 ' + (today.getMonth() + 1) + ' 月 ' + today.getDate() + ' 日';
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+let rng = mulberry32(seedNum);
+const rnd = (a, b) => a + rng() * (b - a);
+const gauss = () => (rng() + rng() + rng() - 1.5) / 1.5;
+
+/* ---------- 点云(可显形的世界) ---------- */
+/* 色板:0 宣纸 1 雾霭 2 月金 3 水青 */
+const TINTS = [
+  [226, 228, 222],
+  [162, 178, 196],
+  [244, 230, 198],
+  [172, 202, 206],
+];
+let px, py, ps, pa, pt, ph, sh, en;   // 坐标/尺寸/基础亮度/色/闪烁相位/闪烁幅度/受激能量
+const points = { n: 0 };
+let anchors = [];                     // 常驻回声点:月、塔、舟、湖心
+
+function resetPoints() { px = []; py = []; ps = []; pa = []; pt = []; ph = []; sh = []; en = []; }
+function P(x, y, size, alpha, tint, shim) {
+  px.push(x); py.push(y); ps.push(size); pa.push(alpha);
+  pt.push(tint); ph.push(rng() * Math.PI * 2); sh.push(shim); en.push(0);
+}
+
+/* ---------- 成景 ---------- */
+function buildScene(w, h) {
+  resetPoints();
+  rng = mulberry32(seedNum);          // 同一天,同一座山
+  const wl = h * 0.70;                // 水线
+  const mobile = Math.min(w, h) < 560;
+  const dense = mobile ? 0.62 : 1;
+
+  /* 月 */
+  const mx = w * 0.76, my = h * 0.185, mr = Math.min(w, h) * 0.052;
+  for (let i = 0; i < 130 * dense; i++) {
+    const a = rng() * Math.PI * 2, r = mr * rnd(0.965, 1.035);
+    P(mx + Math.cos(a) * r, my + Math.sin(a) * r, 0.95, rnd(0.45, 0.7), 2, 0.14);
+  }
+  for (let i = 0; i < 120 * dense; i++) {
+    const a = rng() * Math.PI * 2, r = mr * Math.sqrt(rng()) * 0.93;
+    P(mx + Math.cos(a) * r, my + Math.sin(a) * r, 0.7, rnd(0.06, 0.2), 2, 0.2);
+  }
+
+  /* 山:三层远中近,脊线为正弦叠加,山脚以指数密度淡出成墨韵 */
+  const ridges = [];
+  function ridge(baseY, amp, topA, tint) {
+    const k1 = rnd(5.0, 6.6), k2 = rnd(9.2, 11.5), k3 = rnd(16, 21);
+    const p1 = rng() * 6.28, p2 = rng() * 6.28, p3 = rng() * 6.28;
+    const f = u => baseY - amp * h * (0.55 * Math.sin(k1 * u + p1) + 0.30 * Math.sin(k2 * u + p2) + 0.15 * Math.sin(k3 * u + p3));
+    ridges.push(f);
+    for (let x = -6; x <= w + 6; x += 2.7 / dense) {
+      const u = x / w, y = f(u);
+      P(x, y, 0.85, topA * rnd(0.75, 1.15), tint, 0.05);
+      for (let yy = y + 3; yy < Math.min(y + h * 0.085, wl); yy += 4.2) {
+        if (rng() < 0.5 * Math.exp(-(yy - y) / (h * 0.028)))
+          P(x + gauss() * 2, yy, 0.8, topA * rnd(0.2, 0.45), tint, 0.04);
+      }
+    }
+    return f;
+  }
+  ridge(h * 0.455, 0.082, 0.34, 1);   // 远
+  const fMid = ridge(h * 0.545, 0.112, 0.42, 0);  // 中
+  ridge(h * 0.655, 0.148, 0.60, 0);   // 近
+
+  /* 塔立于中山峰顶 */
+  let pu = 0.23, py0 = 1e9;
+  for (let u = 0.14; u <= 0.32; u += 0.004) { const y = fMid(u); if (y < py0) { py0 = y; pu = u; } }
+  pagoda(pu * w, py0 + 2, h * 0.05);
+
+  /* 雾带 */
+  mist(h * 0.505, h * 0.014, 0.14);
+  mist(h * 0.575, h * 0.016, 0.12);
+  mist(h * 0.645, h * 0.014, 0.10);
+  mist(wl + h * 0.035, h * 0.012, 0.08);
+
+  /* 倒影:山影入湖,愈深愈淡 */
+  for (const f of [ridges[1], ridges[2]]) {
+    for (let x = -6; x <= w + 6; x += 5) {
+      if (rng() < 0.6) continue;
+      const yr = wl + (wl - f(x / w)) * 0.55 + rng() * 2.5;
+      if (yr < h) P(x + rng() * 2, yr, 0.75, 0.16 + rng() * 0.12, 3, 0.32);
+    }
+  }
+  /* 月影一道 */
+  for (let y = wl + 5; y < h * 0.87; y += 3.2) {
+    if (rng() < 0.55 * Math.exp(-(y - wl) / (h * 0.085)))
+      P(mx + gauss() * w * 0.013, y, 0.75, 0.30 * (1 - (y - wl) / (h * 0.17)), 2, 0.5);
+  }
+  /* 涟漪短笔 */
+  for (let i = 0; i < 72 * dense; i++) {
+    const ry = wl + (h - wl) * Math.pow(rng(), 1.2);
+    const x0 = rng() * w, len = rnd(18, 70);
+    const a = 0.06 + rng() * 0.16;
+    for (let x = x0; x < Math.min(x0 + len, w); x += 4)
+      P(x, ry + Math.sin(x * 0.05 + ry) * 1.2, 0.8, a, 3, 0.42);
+  }
+
+  /* 孤舟蓑笠翁 */
+  boat(w * 0.335, h * 0.742);
+
+  /* 飞鸟两点 */
+  bird(w * 0.60, h * 0.30, 9);
+  bird(w * 0.655, h * 0.258, 6.5);
+
+  /* 前景老松,自左下探入 */
+  pine(w, h);
+
+  points.n = px.length;
+  for (let i = 0; i < points.n; i++) { px[i] = px[i] | 0; py[i] = py[i] | 0; }
+
+  anchors = [
+    { x: mx, y: my },                                   // 月
+    { x: pu * w, y: py0 - h * 0.02 },                   // 塔
+    { x: w * 0.335, y: h * 0.742 },                     // 舟
+    { x: w * 0.56, y: wl + (h - wl) * 0.45 },           // 湖心
+  ];
+}
+
+function mist(cy, spread, alpha) {
+  for (let x = -10; x <= w0 + 10; x += rnd(7, 13)) {
+    if (rng() < 0.25) continue;
+    P(x, cy + gauss() * spread * 2, 1.15, alpha * rnd(0.5, 1.1), 1, 0.16);
+  }
+}
+
+function pagoda(x, yBase, hgt) {
+  const tiers = 5;
+  for (let i = 0; i < tiers; i++) {
+    const ty = yBase - (hgt / tiers) * i;
+    const tw = hgt * 0.32 * (1 - i * 0.13);
+    for (let dx = -tw; dx <= tw; dx += 1.6)              // 檐
+      P(x + dx, ty - Math.abs(dx) * 0.10 + 1, 0.75, 0.85, 0, 0.03);
+    if (i < tiers - 1)
+      for (let yy = ty - hgt / tiers * 0.62; yy < ty - 2; yy += 2.2) {  // 身
+        P(x - hgt * 0.055, yy, 0.7, 0.8, 0, 0.03);
+        P(x + hgt * 0.055, yy, 0.7, 0.8, 0, 0.03);
+      }
+  }
+  P(x, yBase - hgt - 2, 0.8, 0.9, 0, 0.05);              // 塔刹
+}
+
+function boat(x, y) {
+  const hull = [[x - 38, y - 4], [x - 28, y + 6], [x + 26, y + 6], [x + 36, y - 4]];
+  stroke(hull, 1.1, 0.9, 0);
+  arcPts(x + 2, y - 12, 7, 0.15, Math.PI * 0.85, 8, 0.85, 0.9, 0);          // 身
+  arcPts(x + 2, y - 19, 4.5, Math.PI * 1.05, Math.PI * 1.95, 7, 0.8, 0.85, 0);  // 笠
+  stroke([[x + 8, y - 15], [x + 31, y - 4], [x + 31, y + 12]], 0.8, 0.7, 0); // 竿与钓线
+}
+
+function bird(x, y, s) {
+  quad(x - s, y, x - s * 0.35, y - s * 0.9, x, y, 6, 0.5, 1);
+  quad(x, y, x + s * 0.35, y - s * 0.9, x + s, y, 6, 0.5, 1);
+}
+
+function pine(w, h) {
+  quad(w * 0.015, h * 1.03, w * 0.045, h * 0.88, w * 0.075, h * 0.80, 26, 0.5, 0, 1.7);
+  quad(w * 0.075, h * 0.80, w * 0.12, h * 0.755, w * 0.17, h * 0.752, 16, 0.42, 0, 1.5);
+  needles(w * 0.17, h * 0.752, 15, 0.42);
+  needles(w * 0.075, h * 0.80, 12, 0.38);
+  quad(w * 0.058, h * 0.855, w * 0.10, h * 0.83, w * 0.145, h * 0.838, 12, 0.34, 0, 1.3);
+  needles(w * 0.145, h * 0.838, 11, 0.34);
+}
+
+function needles(cx, cy, r, alpha) {
+  const n = 20;
+  for (let i = 0; i < n; i++) {
+    const a = rng() * Math.PI * 2, l = rnd(r * 0.5, r);
+    const x2 = cx + Math.cos(a) * l, y2 = cy + Math.sin(a) * l * 0.6;
+    for (let k = 0; k <= 2; k++)
+      P(cx + (x2 - cx) * k / 2, cy + (y2 - cy) * k / 2, 0.7, alpha * (1 - k * 0.25), 0, 0.05);
+  }
+}
+
+function stroke(pts, size, alpha, tint) {
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [x1, y1] = pts[i], [x2, y2] = pts[i + 1];
+    const d = Math.hypot(x2 - x1, y2 - y1), n = Math.max(2, Math.round(d / 3));
+    for (let k = 0; k <= n; k++)
+      P(x1 + (x2 - x1) * k / n + gauss(), y1 + (y2 - y1) * k / n + gauss(), size, alpha * rnd(0.8, 1.1), tint, 0.04);
+  }
+}
+function quad(x1, y1, cx, cy, x2, y2, n, alpha, tint, size) {
+  size = size || 0.9;
+  for (let k = 0; k <= n; k++) {
+    const t = k / n, mt = 1 - t;
+    P(mt * mt * x1 + 2 * mt * t * cx + t * t * x2 + gauss(),
+      mt * mt * y1 + 2 * mt * t * cy + t * t * y2 + gauss(),
+      size, alpha * rnd(0.8, 1.1), tint, 0.05);
+  }
+}
+function arcPts(cx, cy, r, a0, a1, n, alpha, size, tint) {
+  for (let k = 0; k <= n; k++) {
+    const a = a0 + (a1 - a0) * k / n;
+    P(cx + Math.cos(a) * r + gauss(), cy + Math.sin(a) * r + gauss(), size, alpha * rnd(0.8, 1.1), tint, 0.05);
+  }
+}
+
+/* ---------- 发光精灵 ---------- */
+const sprites = TINTS.map(([r, g, b]) => {
+  const s = document.createElement('canvas'); s.width = s.height = 64;
+  const c = s.getContext('2d');
+  const g2 = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g2.addColorStop(0, `rgba(${r},${g},${b},0.95)`);
+  g2.addColorStop(0.3, `rgba(${r},${g},${b},0.5)`);
+  g2.addColorStop(1, `rgba(${r},${g},${b},0)`);
+  c.fillStyle = g2; c.fillRect(0, 0, 64, 64);
+  return s;
+});
+
+/* ---------- 声波 ---------- */
+const waves = [];
+let W = 0, H = 0, diag = 0, w0 = 0;
+let reveal = 0;            // 惊雷的全景显形余晖
+let pings = 0;             // 击磬计数
+
+function emit(x, y, speed, amp, width, maxR, r0) {
+  if (waves.length > 18) waves.shift();
+  waves.push({ x, y, r: r0 || 0, speed, amp, width, maxR });
+}
+function doBell(x, y) {
+  pings++;
+  emit(x, y, 150, 1.2, 26, diag * 0.95);
+  bellSound(1 - y / H);
+  sealPulse(); maybePoem();
+}
+function doThunder(x, y) {
+  pings++;
+  reveal = 1;
+  emit(x, y, 230, 1.25, 58, diag * 1.35);
+  emit(x, y, 230, 1.1, 58, diag * 1.35, -130);
+  emit(x, y, 230, 0.95, 58, diag * 1.35, -260);
+  thunderSound();
+  sealPulse(); maybePoem();
+}
+
+const POEMS = [
+  '钟声落处,群峰初醒',
+  '山不语,以回声作答',
+  '一石入湖,千山浮动',
+  '月中有人扫雪,簌簌有声',
+  '你看不见的地方,未必没有山水',
+];
+let poemTimer = null;
+function showPoem(text) {
+  poemEl.textContent = text;
+  poemEl.classList.add('show');
+  clearTimeout(poemTimer);
+  poemTimer = setTimeout(() => poemEl.classList.remove('show'), 6200);
+}
+function maybePoem() { if (pings % 10 === 0) showPoem(POEMS[(pings / 10 - 1) % POEMS.length]); }
+
+function sealPulse() {
+  sealEl.classList.add('pulse');
+  setTimeout(() => sealEl.classList.remove('pulse'), 220);
+}
+
+/* ---------- 声音(Web Audio,点按解锁) ---------- */
+let actx = null, master = null, muted = false;
+function ensureAudio() {
+  if (muted) return;
+  try {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      master = actx.createGain(); master.gain.value = 0.5;
+      master.connect(actx.destination);
+    }
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { /* 沙箱中静默降级为纯视觉 */ }
+}
+function bellSound(ny) {
+  if (!actx || muted) return;
+  try {
+    const deg = [0, 3, 5, 7, 10, 12][Math.min(5, Math.floor((1 - ny) * 6))];
+    const f = 523.25 * Math.pow(2, deg / 12);
+    const t0 = actx.currentTime;
+    const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.38, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.7);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + 1.8);
+    const o2 = actx.createOscillator(); o2.type = 'sine'; o2.frequency.value = f * 2.005;
+    const g2 = actx.createGain();
+    g2.gain.setValueAtTime(0.0001, t0);
+    g2.gain.exponentialRampToValueAtTime(0.08, t0 + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.9);
+    o2.connect(g2); g2.connect(master); o2.start(t0); o2.stop(t0 + 1);
+  } catch (e) {}
+}
+function thunderSound() {
+  if (!actx || muted) return;
+  try {
+    const t0 = actx.currentTime, dur = 1.3;
+    const buf = actx.createBuffer(1, actx.sampleRate * dur, actx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.6);
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 210;
+    const g = actx.createGain();
+    g.gain.setValueAtTime(0.55, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(lp); lp.connect(g); g.connect(master); src.start(t0);
+    const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = 46;
+    const g2 = actx.createGain();
+    g2.gain.setValueAtTime(0.35, t0);
+    g2.gain.exponentialRampToValueAtTime(0.0001, t0 + 1.8);
+    o.connect(g2); g2.connect(master); o.start(t0); o.stop(t0 + 1.9);
+  } catch (e) {}
+}
+
+/* ---------- 交互 ---------- */
+let pd = null, lpTimer = null, thundered = false;
+let lastWX = -999, lastWY = -999, lastWT = 0;
+
+function pos(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+
+canvas.addEventListener('pointerdown', e => {
+  ensureAudio();
+  const p = pos(e);
+  pd = { x: p.x, y: p.y, t: performance.now() };
+  thundered = false;
+  clearTimeout(lpTimer);
+  lpTimer = setTimeout(() => { doThunder(pd.x, pd.y); thundered = true; lpTimer = null; }, 450);
+});
+addEventListener('pointerup', () => {
+  clearTimeout(lpTimer); lpTimer = null;
+  if (pd && !thundered && performance.now() - pd.t < 450) doBell(pd.x, pd.y);
+  pd = null;
+});
+canvas.addEventListener('pointermove', e => {
+  if (reduced) return;
+  const now = performance.now(), p = pos(e);
+  if (pd && Math.hypot(p.x - pd.x, p.y - pd.y) > 34) { clearTimeout(lpTimer); lpTimer = null; }
+  if (now - lastWT > 110 && Math.hypot(p.x - lastWX, p.y - lastWY) > 22) {
+    lastWT = now; lastWX = p.x; lastWY = p.y;
+    emit(p.x, p.y, 95, 0.32, 16, 240);
+  }
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+addEventListener('keydown', e => {
+  if (e.repeat) return;
+  if (e.code === 'Space') { e.preventDefault(); doThunder(W * 0.5, H * 0.42); }
+  else if (e.code === 'KeyB' || e.code === 'Enter') {
+    const a = anchors[Math.floor(Math.random() * anchors.length)] || { x: W / 2, y: H / 2 };
+    doBell(a.x + rnd(-30, 30), a.y + rnd(-30, 30));
+  }
+  else if (e.code === 'KeyM') toggleMute();
+  else if (e.code === 'KeyH') hintEl.classList.toggle('gone');
+});
+
+function toggleMute() {
+  muted = !muted;
+  muteEl.textContent = muted ? '默' : '聲';
+  if (!muted) ensureAudio();
+}
+muteEl.addEventListener('click', e => { e.stopPropagation(); toggleMute(); });
+
+/* ---------- 主循环 ---------- */
+let nextAmbient = 1.15, opened = false, ai = 0, t = 0, last = performance.now();
+
+function ambientPing() {
+  const a = anchors[ai++ % anchors.length];
+  emit(a.x + rnd(-24, 24), a.y + rnd(-18, 18), 120, 0.9, 24, diag * 0.5);
+}
+
+function frame(now) {
+  requestAnimationFrame(frame);
+  let dt = (now - last) / 1000; last = now;
+  if (document.hidden) return;
+  dt = Math.min(dt, 0.05);
+  t += dt;
+
+  if (!opened && t > 0.4) {          // 开馆:一声远磬,自山后来
+    opened = true;
+    emit(W * 0.5, H * 0.35, 130, 1.25, 30, diag * 0.6);
+    showPoem('入馆者,以声问山');
+  }
+  if (t >= nextAmbient) { ambientPing(); nextAmbient = t + (reduced ? 11 : 6.5); }
+
+  /* 波前推进 */
+  for (let i = waves.length - 1; i >= 0; i--) {
+    const w = waves[i];
+    w.r += w.speed * dt;
+    if (w.r - w.width > w.maxR) waves.splice(i, 1);
+  }
+
+  /* 受激发光 */
+  const decay = Math.exp(-dt / 3.4);
+  for (let i = 0; i < points.n; i++) en[i] *= decay;
+  for (const w of waves) {
+    if (w.r <= 0) continue;
+    const lo = w.r - w.width, hi = w.r + w.width;
+    const lo2 = lo < 0 ? 0 : lo * lo, hi2 = hi * hi;
+    const ox = w.x, oy = w.y, wr = w.r, wwd = w.width;
+    const distGain = 1 / (1 + (wr / w.maxR) * 2.4);
+    for (let i = 0; i < points.n; i++) {
+      const dx = px[i] - ox, dy = py[i] - oy, d2 = dx * dx + dy * dy;
+      if (d2 > hi2 || d2 < lo2) continue;
+      const g = Math.exp(-(((Math.sqrt(d2) - wr) / wwd) ** 2));
+      const c = w.amp * g * distGain;
+      en[i] = Math.min(1.5, en[i] + c * 1.5);
+    }
+  }
+  reveal *= Math.exp(-dt / 1.15);
+
+  /* 绘制 */
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#05070a';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+
+  ctx.lineWidth = 1.2;
+  for (const w of waves) {
+    if (w.r <= 0) continue;
+    const a = 0.055 * w.amp / (1 + (w.r / w.maxR) * 2.4);
+    if (a < 0.004) continue;
+    ctx.strokeStyle = `rgba(190,212,228,${a.toFixed(4)})`;
+    ctx.beginPath(); ctx.arc(w.x, w.y, w.r, 0, 6.2832); ctx.stroke();
+  }
+
+  const floorK = reduced ? 0.065 : 0.075;
+  for (let i = 0; i < points.n; i++) {
+    const b = pa[i] * (1.35 * en[i] + reveal * 0.55 + floorK + 0.02 * Math.sin(t * 0.7 + ph[i]))
+              * (1 + sh[i] * Math.sin(t * 2.1 + ph[i]));
+    if (b < 0.015) continue;
+    const e = Math.min(1.25, en[i] + reveal * 0.6);
+    const d = ps[i] * (3.2 + 9 * e);
+    ctx.globalAlpha = Math.min(1, b);
+    ctx.drawImage(sprites[pt[i]], px[i] - d / 2, py[i] - d / 2, d, d);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* ---------- 尺寸与启动 ---------- */
+function setup() {
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight; diag = Math.hypot(W, H); w0 = W;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  buildScene(W, H);
+}
+let rszTimer = null;
+addEventListener('resize', () => { clearTimeout(rszTimer); rszTimer = setTimeout(setup, 160); });
+
+setTimeout(() => hintEl.classList.add('gone'), 14000);
+setup();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
